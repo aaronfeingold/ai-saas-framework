@@ -1,8 +1,8 @@
-import Anthropic from '@anthropic-ai/sdk'
+import Anthropic from '@anthropic-ai/sdk';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
-})
+});
 
 export const claudeModels = {
   'claude-3-5-sonnet-20241022': {
@@ -20,23 +20,26 @@ export const claudeModels = {
     contextWindow: 200000,
     maxTokens: 4096,
   },
-} as const
+} as const;
 
-export type ClaudeModel = keyof typeof claudeModels
+export type ClaudeModel = keyof typeof claudeModels;
 
 export const createClaudeCompletion = async (
   model: ClaudeModel,
   messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>,
   options?: {
-    maxTokens?: number
-    temperature?: number
-    stream?: boolean
+    maxTokens?: number;
+    temperature?: number;
+    stream?: boolean;
   }
 ) => {
-  const { maxTokens = 1024, temperature = 0.7, stream = false } = options || {}
+  const { maxTokens = 1024, temperature = 0.7, stream = false } = options || {};
 
-  const systemMessage = messages.find(m => m.role === 'system')?.content
-  const userMessages = messages.filter(m => m.role !== 'system') as Array<{ role: 'user' | 'assistant'; content: string }>
+  const systemMessage = messages.find((m) => m.role === 'system')?.content;
+  const userMessages = messages.filter((m) => m.role !== 'system') as Array<{
+    role: 'user' | 'assistant';
+    content: string;
+  }>;
 
   const response = await anthropic.messages.create({
     model,
@@ -45,23 +48,26 @@ export const createClaudeCompletion = async (
     messages: userMessages,
     system: systemMessage,
     stream,
-  })
+  });
 
-  return response
-}
+  return response;
+};
 
 export const createClaudeStreamCompletion = async (
   model: ClaudeModel,
   messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>,
   options?: {
-    maxTokens?: number
-    temperature?: number
+    maxTokens?: number;
+    temperature?: number;
   }
 ) => {
-  const { maxTokens = 1024, temperature = 0.7 } = options || {}
+  const { maxTokens = 1024, temperature = 0.7 } = options || {};
 
-  const systemMessage = messages.find(m => m.role === 'system')?.content
-  const userMessages = messages.filter(m => m.role !== 'system') as Array<{ role: 'user' | 'assistant'; content: string }>
+  const systemMessage = messages.find((m) => m.role === 'system')?.content;
+  const userMessages = messages.filter((m) => m.role !== 'system') as Array<{
+    role: 'user' | 'assistant';
+    content: string;
+  }>;
 
   const stream = await anthropic.messages.create({
     model,
@@ -70,9 +76,9 @@ export const createClaudeStreamCompletion = async (
     messages: userMessages,
     system: systemMessage,
     stream: true,
-  })
+  });
 
-  return stream
-}
+  return stream;
+};
 
-export default anthropic
+export default anthropic;

@@ -1,10 +1,11 @@
+import { type NextRequest, NextResponse } from 'next/server';
+
 import { createServerClient } from '@supabase/ssr';
-import { NextResponse, type NextRequest } from 'next/server';
 
 export async function middleware(request: NextRequest) {
   // Initialize Supabase client and handle session
   let response = NextResponse.next({
-    request
+    request,
   });
 
   const supabase = createServerClient(
@@ -20,19 +21,19 @@ export async function middleware(request: NextRequest) {
             request.cookies.set(name, value)
           );
           response = NextResponse.next({
-            request
+            request,
           });
           cookiesToSet.forEach(({ name, value, options }) =>
             response.cookies.set(name, value, options)
           );
-        }
-      }
+        },
+      },
     }
   );
 
   // Get user session
   const {
-    data: { user: session }
+    data: { user: session },
   } = await supabase.auth.getUser();
 
   // Handle route-specific redirects
@@ -59,8 +60,8 @@ export const config = {
         '/((?!_next/static|_next/image|favicon.ico|favicons/.*\\.png|manifest.webmanifest|manifest.json|api/.*|fonts/.*|sitemap.xml|robots.txt|manifest.json|manifest.webmanifest|\\.well-known/.*).*)',
       missing: [
         { type: 'header', key: 'next-router-prefetch' },
-        { type: 'header', key: 'purpose', value: 'prefetch' }
-      ]
-    }
-  ]
+        { type: 'header', key: 'purpose', value: 'prefetch' },
+      ],
+    },
+  ],
 };

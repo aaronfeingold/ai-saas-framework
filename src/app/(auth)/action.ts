@@ -1,9 +1,11 @@
 'use server';
 
-import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
-import { createServerSupabaseClient as createClient } from '@/lib/server/server';
 import { redirect } from 'next/navigation';
+
+import { z } from 'zod';
+
+import { createServerSupabaseClient as createClient } from '@/lib/server/server';
 
 interface AuthResponse {
   success: boolean;
@@ -12,7 +14,7 @@ interface AuthResponse {
 
 const formDataSchemaSignin = z.object({
   email: z.string().email(),
-  password: z.string().min(6)
+  password: z.string().min(6),
 });
 
 export async function login(formData: FormData): Promise<AuthResponse> {
@@ -20,13 +22,13 @@ export async function login(formData: FormData): Promise<AuthResponse> {
 
   const result = formDataSchemaSignin.safeParse({
     email: formData.get('email'),
-    password: formData.get('password')
+    password: formData.get('password'),
   });
 
   if (!result.success) {
     return {
       success: false,
-      message: 'Invalid input credentials'
+      message: 'Invalid input credentials',
     };
   }
 
@@ -34,27 +36,27 @@ export async function login(formData: FormData): Promise<AuthResponse> {
 
   const { error } = await supabase.auth.signInWithPassword({
     email,
-    password
+    password,
   });
 
   if (error) {
     return {
       success: false,
-      message: 'Invalid email or password'
+      message: 'Invalid email or password',
     };
   }
 
   revalidatePath('/', 'layout');
   return {
     success: true,
-    message: 'Successfully logged in'
+    message: 'Successfully logged in',
   };
 }
 
 const formDataSchemaSignup = z.object({
   email: z.string().email(),
   password: z.string().min(6),
-  fullName: z.string().optional()
+  fullName: z.string().optional(),
 });
 
 export async function signup(formData: FormData): Promise<AuthResponse> {
@@ -65,13 +67,13 @@ export async function signup(formData: FormData): Promise<AuthResponse> {
     password: formData.get('password') ? String(formData.get('password')) : '',
     fullName: formData.get('fullName')
       ? String(formData.get('fullName'))
-      : undefined
+      : undefined,
   });
 
   if (!result.success) {
     return {
       success: false,
-      message: 'Invalid input data'
+      message: 'Invalid input data',
     };
   }
 
@@ -81,26 +83,26 @@ export async function signup(formData: FormData): Promise<AuthResponse> {
     email: email,
     password: password,
     options: {
-      data: { full_name: fullName ?? 'default_user' }
-    }
+      data: { full_name: fullName ?? 'default_user' },
+    },
   });
 
   if (error) {
     console.error('Error:', error);
     return {
       success: false,
-      message: 'Failed to create account'
+      message: 'Failed to create account',
     };
   }
 
   return {
     success: true,
-    message: 'Check your email to confirm your account'
+    message: 'Check your email to confirm your account',
   };
 }
 
 const formDataSchemaReset = z.object({
-  email: z.string().email()
+  email: z.string().email(),
 });
 
 export async function resetPasswordForEmail(
@@ -114,7 +116,7 @@ export async function resetPasswordForEmail(
   if (!result.success) {
     return {
       success: false,
-      message: 'Invalid email address'
+      message: 'Invalid email address',
     };
   }
 
@@ -123,13 +125,13 @@ export async function resetPasswordForEmail(
   if (error) {
     return {
       success: false,
-      message: 'Failed to send password reset email'
+      message: 'Failed to send password reset email',
     };
   }
 
   return {
     success: true,
-    message: 'Check your email to continue the password reset process'
+    message: 'Check your email to continue the password reset process',
   };
 }
 

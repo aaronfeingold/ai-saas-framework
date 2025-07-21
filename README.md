@@ -14,12 +14,14 @@ This framework implements a three-database architecture for optimal performance 
 ## Quick Start
 
 1. **Clone and install dependencies:**
+
 ```bash
 cd ai-saas-framework
 pnpm install
 ```
 
 2. **Set up environment variables:**
+
 ```bash
 cp .env.example .env.local
 # Fill in all required environment variables
@@ -28,6 +30,7 @@ cp .env.example .env.local
 3. **Set up databases (see Database Setup section below)**
 
 4. **Run the development server:**
+
 ```bash
 pnpm dev
 ```
@@ -43,6 +46,7 @@ pnpm dev
    - Copy the service_role key from the same page
 
 3. **Configure environment variables:**
+
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
@@ -50,6 +54,7 @@ SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 ```
 
 4. **Create required tables in Supabase SQL Editor:**
+
 ```sql
 -- Create profiles table
 CREATE TABLE profiles (
@@ -83,17 +88,19 @@ CREATE POLICY "Users can update own profile" ON profiles
    - Format: `mongodb+srv://username:password@cluster.mongodb.net/dbname`
 
 2. **Option B: Local MongoDB**
+
    ```bash
    # Install MongoDB locally
    brew install mongodb/brew/mongodb-community  # macOS
    sudo apt-get install mongodb  # Ubuntu
-   
+
    # Start MongoDB
    brew services start mongodb/brew/mongodb-community  # macOS
    sudo systemctl start mongod  # Ubuntu
    ```
 
 3. **Configure environment variables:**
+
 ```env
 MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/ai-saas-framework
 MONGODB_DB_NAME=ai-saas-framework
@@ -104,26 +111,28 @@ MONGODB_DB_NAME=ai-saas-framework
 1. **Option A: Supabase (Separate Project for Vectors)**
    - Create a second Supabase project for vectors
    - Enable the pgvector extension in SQL Editor:
+
    ```sql
    CREATE EXTENSION IF NOT EXISTS vector;
    ```
 
 2. **Option B: Local PostgreSQL with pgvector**
+
    ```bash
    # Install PostgreSQL
    brew install postgresql  # macOS
    sudo apt-get install postgresql postgresql-contrib  # Ubuntu
-   
+
    # Install pgvector
    git clone https://github.com/pgvector/pgvector.git
    cd pgvector
    make
    make install  # or sudo make install
-   
+
    # Start PostgreSQL
    brew services start postgresql  # macOS
    sudo systemctl start postgresql  # Ubuntu
-   
+
    # Create database and enable extension
    psql postgres
    CREATE DATABASE vector_db;
@@ -132,6 +141,7 @@ MONGODB_DB_NAME=ai-saas-framework
    ```
 
 3. **Configure environment variables:**
+
 ```env
 VECTOR_DATABASE_URL=postgresql://username:password@localhost:5432/vector_db
 VECTOR_DATABASE_DIRECT_URL=postgresql://username:password@localhost:5432/vector_db
@@ -145,17 +155,19 @@ VECTOR_DATABASE_DIRECT_URL=postgresql://username:password@localhost:5432/vector_
    - Copy the Redis URL
 
 2. **Option B: Local Redis**
+
    ```bash
    # Install Redis
    brew install redis  # macOS
    sudo apt-get install redis-server  # Ubuntu
-   
+
    # Start Redis
    brew services start redis  # macOS
    sudo systemctl start redis-server  # Ubuntu
    ```
 
 3. **Configure environment variables:**
+
 ```env
 REDIS_URL=redis://localhost:6379
 # or for Redis Cloud:
@@ -168,6 +180,7 @@ REDIS_URL=rediss://username:password@endpoint:port
 
 1. **Get API key:** https://console.anthropic.com/
 2. **Configure environment:**
+
 ```env
 ANTHROPIC_API_KEY=sk-ant-your-api-key
 ```
@@ -177,15 +190,18 @@ ANTHROPIC_API_KEY=sk-ant-your-api-key
 1. **Create Stripe account:** https://dashboard.stripe.com/register
 2. **Get your keys from Dashboard > Developers > API keys**
 3. **Configure environment:**
+
 ```env
 STRIPE_SECRET_KEY=sk_test_your_secret_key
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_your_publishable_key
 ```
+
 4. **Set up webhooks:**
    - Go to Dashboard > Developers > Webhooks
    - Add endpoint: `https://yourdomain.com/api/stripe/webhook`
    - Select events: `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.payment_succeeded`, `invoice.payment_failed`
    - Copy webhook secret:
+
 ```env
 STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
 ```
@@ -198,6 +214,7 @@ NEXTAUTH_SECRET=your-32-character-secret-key-here
 ```
 
 Generate a secret:
+
 ```bash
 openssl rand -base64 32
 ```
@@ -281,7 +298,7 @@ curl http://localhost:3000/api/health
 ### Caching Strategy
 
 - **User Data:** 5-minute TTL
-- **Vector Search Results:** 30-minute TTL  
+- **Vector Search Results:** 30-minute TTL
 - **Content Data:** 10-minute TTL (configurable)
 - **Session Data:** 1-hour TTL
 
@@ -290,10 +307,11 @@ curl http://localhost:3000/api/health
 ### Common Issues
 
 1. **Database Connection Issues:**
+
    ```bash
    # Check health endpoint
    curl http://localhost:3000/api/health
-   
+
    # Check environment variables
    echo $SUPABASE_URL
    echo $MONGODB_URI

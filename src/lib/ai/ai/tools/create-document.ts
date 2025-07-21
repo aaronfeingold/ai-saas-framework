@@ -1,12 +1,14 @@
-import { generateUUID } from '@/lib/utils';
-import { tool, type UIMessageStreamWriter } from 'ai';
-import { z } from 'zod';
 import type { Session } from 'next-auth';
+
+import { type UIMessageStreamWriter, tool } from 'ai';
+import { z } from 'zod';
+
 import {
   artifactKinds,
   documentHandlersByArtifactKind,
 } from '@/lib/artifacts/server';
 import type { ChatMessage } from '@/lib/types';
+import { generateUUID } from '@/lib/utils';
 
 interface CreateDocumentProps {
   session: Session;
@@ -50,7 +52,7 @@ export const createDocument = ({ session, dataStream }: CreateDocumentProps) =>
 
       const documentHandler = documentHandlersByArtifactKind.find(
         (documentHandlerByArtifactKind) =>
-          documentHandlerByArtifactKind.kind === kind,
+          documentHandlerByArtifactKind.kind === kind
       );
 
       if (!documentHandler) {

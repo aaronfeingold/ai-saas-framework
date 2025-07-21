@@ -1,19 +1,19 @@
+import { memo } from 'react';
+
+import equal from 'fast-deep-equal';
+import { toast } from 'sonner';
 import { useSWRConfig } from 'swr';
 import { useCopyToClipboard } from 'usehooks-ts';
 
-import type { Vote } from '@/lib/db/schema';
-
-import { CopyIcon, ThumbDownIcon, ThumbUpIcon } from './icons';
-import { Button } from './ui/button';
+import { CopyIcon, ThumbDownIcon, ThumbUpIcon } from '@/components/icons';
+import { Button } from '@/components/ui/button';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from './ui/tooltip';
-import { memo } from 'react';
-import equal from 'fast-deep-equal';
-import { toast } from 'sonner';
+} from '@/components/ui/tooltip';
+import type { Vote } from '@/lib/db/schema';
 import type { ChatMessage } from '@/lib/types';
 
 export function PureMessageActions({
@@ -28,7 +28,7 @@ export function PureMessageActions({
   isLoading: boolean;
 }) {
   const { mutate } = useSWRConfig();
-  const [_, copyToClipboard] = useCopyToClipboard();
+  const [, copyToClipboard] = useCopyToClipboard();
 
   if (isLoading) return null;
   if (message.role === 'user') return null;
@@ -39,7 +39,7 @@ export function PureMessageActions({
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
-              className="py-1 px-2 h-fit text-muted-foreground"
+              className="text-muted-foreground h-fit px-2 py-1"
               variant="outline"
               onClick={async () => {
                 const textFromParts = message.parts
@@ -67,7 +67,7 @@ export function PureMessageActions({
           <TooltipTrigger asChild>
             <Button
               data-testid="message-upvote"
-              className="py-1 px-2 h-fit text-muted-foreground !pointer-events-auto"
+              className="text-muted-foreground !pointer-events-auto h-fit px-2 py-1"
               disabled={vote?.isUpvoted}
               variant="outline"
               onClick={async () => {
@@ -89,7 +89,7 @@ export function PureMessageActions({
                         if (!currentVotes) return [];
 
                         const votesWithoutCurrent = currentVotes.filter(
-                          (vote) => vote.messageId !== message.id,
+                          (vote) => vote.messageId !== message.id
                         );
 
                         return [
@@ -101,7 +101,7 @@ export function PureMessageActions({
                           },
                         ];
                       },
-                      { revalidate: false },
+                      { revalidate: false }
                     );
 
                     return 'Upvoted Response!';
@@ -120,7 +120,7 @@ export function PureMessageActions({
           <TooltipTrigger asChild>
             <Button
               data-testid="message-downvote"
-              className="py-1 px-2 h-fit text-muted-foreground !pointer-events-auto"
+              className="text-muted-foreground !pointer-events-auto h-fit px-2 py-1"
               variant="outline"
               disabled={vote && !vote.isUpvoted}
               onClick={async () => {
@@ -142,7 +142,7 @@ export function PureMessageActions({
                         if (!currentVotes) return [];
 
                         const votesWithoutCurrent = currentVotes.filter(
-                          (vote) => vote.messageId !== message.id,
+                          (vote) => vote.messageId !== message.id
                         );
 
                         return [
@@ -154,7 +154,7 @@ export function PureMessageActions({
                           },
                         ];
                       },
-                      { revalidate: false },
+                      { revalidate: false }
                     );
 
                     return 'Downvoted Response!';
@@ -180,5 +180,5 @@ export const MessageActions = memo(
     if (prevProps.isLoading !== nextProps.isLoading) return false;
 
     return true;
-  },
+  }
 );

@@ -1,5 +1,7 @@
-import 'server-only';
 import { cache } from 'react';
+
+import 'server-only';
+
 import { createServerSupabaseClient } from '@/lib/server/server';
 
 // React Cache: https://react.dev/reference/react/cache
@@ -9,7 +11,7 @@ export const getSession = cache(async () => {
   const supabase = await createServerSupabaseClient();
   try {
     const {
-      data: { user }
+      data: { user },
     } = await supabase.auth.getUser();
     return user;
   } catch (error) {

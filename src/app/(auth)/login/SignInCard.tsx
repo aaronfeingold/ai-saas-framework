@@ -1,26 +1,31 @@
 'use client';
-import React, { useState, useCallback } from 'react';
-import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Separator } from '@/components/ui/separator';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Label } from '@/components/ui/label';
-import { Loader2 } from 'lucide-react';
-import ForgotPassword from '../ForgotPassword';
-import { GoogleIcon } from '../CustomIcons';
-import { login } from '../action';
-import { signInWithGoogle } from '../OAuth';
-import { useRouter } from 'next/navigation';
-import { useFormStatus } from 'react-dom';
+
+import React, { useCallback, useState } from 'react';
+
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+
+import { Loader2 } from 'lucide-react';
+import { useFormStatus } from 'react-dom';
+
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+
+import { GoogleIcon } from '../CustomIcons';
+import ForgotPassword from '../ForgotPassword';
+import { signInWithGoogle } from '../OAuth';
+import { login } from '../action';
 
 export default function SignInCard() {
   const router = useRouter();
   const [email, setEmail] = useState(
     typeof window !== 'undefined'
-      ? localStorage.getItem('rememberedEmail') ?? ''
+      ? (localStorage.getItem('rememberedEmail') ?? '')
       : ''
   );
   const [password, setPassword] = useState('');
@@ -43,7 +48,7 @@ export default function SignInCard() {
 
   const [alertMessage, setAlertMessage] = useState({
     type: '',
-    message: ''
+    message: '',
   });
 
   const handleSubmit = async (formData: FormData) => {
@@ -52,7 +57,7 @@ export default function SignInCard() {
 
       setAlertMessage({
         type: result.success ? 'success' : 'error',
-        message: result.message
+        message: result.message,
       });
 
       if (result.success) {
@@ -88,13 +93,13 @@ export default function SignInCard() {
   }, [email, password]);
 
   return (
-    <Card className="flex flex-col self-center w-full sm:w-[450px] p-4 sm:p-6 gap-4 shadow-[0px_5px_15px_rgba(0,0,0,0.05),0px_15px_35px_-5px_rgba(25,28,33,0.05),0px_0px_0px_1px_rgba(0,0,0,0.05)]">
+    <Card className="flex w-full flex-col gap-4 self-center p-4 shadow-[0px_5px_15px_rgba(0,0,0,0.05),0px_15px_35px_-5px_rgba(25,28,33,0.05),0px_0px_0px_1px_rgba(0,0,0,0.05)] sm:w-[450px] sm:p-6">
       <h1 className="text-[clamp(2rem,10vw,2.15rem)] font-bold">Sign In</h1>
 
       <form
         action={handleSubmit}
         noValidate
-        className="flex flex-col w-full gap-4"
+        className="flex w-full flex-col gap-4"
       >
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
@@ -111,7 +116,7 @@ export default function SignInCard() {
             onChange={(e) => setEmail(e.target.value)}
           />
           {emailError && (
-            <p className="text-sm text-destructive">{emailErrorMessage}</p>
+            <p className="text-destructive text-sm">{emailErrorMessage}</p>
           )}
         </div>
 
@@ -122,7 +127,7 @@ export default function SignInCard() {
               type="button"
               variant="link"
               onClick={handleClickOpen}
-              className="p-0 h-auto"
+              className="h-auto p-0"
             >
               Forgot your password?
             </Button>
@@ -139,7 +144,7 @@ export default function SignInCard() {
             onChange={(e) => setPassword(e.target.value)}
           />
           {passwordError && (
-            <p className="text-sm text-destructive">{passwordErrorMessage}</p>
+            <p className="text-destructive text-sm">{passwordErrorMessage}</p>
           )}
         </div>
 
@@ -151,7 +156,7 @@ export default function SignInCard() {
           />
           <Label
             htmlFor="remember-me"
-            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            className="text-sm leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
           >
             Remember me
           </Label>
@@ -162,7 +167,7 @@ export default function SignInCard() {
         <SubmitButton />
 
         {alertMessage.type && (
-          <div className="w-full mb-1">
+          <div className="mb-1 w-full">
             <Alert
               variant={
                 alertMessage.type === 'error' ? 'destructive' : 'default'
@@ -185,7 +190,7 @@ export default function SignInCard() {
           <Separator className="w-full" />
         </div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-background px-2 text-muted-foreground">or</span>
+          <span className="bg-background text-muted-foreground px-2">or</span>
         </div>
       </div>
 
@@ -208,8 +213,8 @@ function SubmitButton() {
   const { pending } = useFormStatus();
 
   return (
-    <Button type="submit" className="w-full mb-1" disabled={pending}>
-      {pending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : 'Sign In'}
+    <Button type="submit" className="mb-1 w-full" disabled={pending}>
+      {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Sign In'}
     </Button>
   );
 }

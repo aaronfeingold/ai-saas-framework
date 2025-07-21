@@ -6,7 +6,7 @@ export async function signInWithGoogle() {
   await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: `${location.origin}/api/auth/confirm`
-    }
+      redirectTo: `${location.origin}/api/auth/confirm`,
+    },
   });
 }

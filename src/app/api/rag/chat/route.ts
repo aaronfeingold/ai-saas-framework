@@ -1,8 +1,9 @@
-import { createResource } from "@/lib/actions/resources";
-import { findRelevantContent } from "@/lib/ai/embedding";
-import { openai } from "@ai-sdk/openai";
-import { generateObject, streamText, tool } from "ai";
-import { z } from "zod";
+import { openai } from '@ai-sdk/openai';
+import { generateObject, streamText, tool } from 'ai';
+import { z } from 'zod';
+
+import { createResource } from '@/lib/actions/resources';
+import { findRelevantContent } from '@/lib/ai/embedding';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -11,7 +12,7 @@ export async function POST(req: Request) {
   const { messages } = await req.json();
 
   const result = streamText({
-    model: openai("gpt-4o"),
+    model: openai('gpt-4o'),
     messages,
     system: `You are a helpful assistant acting as the users' second brain.
     Use tools on every request.
@@ -34,25 +35,25 @@ export async function POST(req: Request) {
         parameters: z.object({
           content: z
             .string()
-            .describe("the content or resource to add to the knowledge base"),
+            .describe('the content or resource to add to the knowledge base'),
         }),
         execute: async ({ content }) => createResource({ content }),
       }),
       getInformation: tool({
         description: `get information from your knowledge base to answer questions.`,
         parameters: z.object({
-          question: z.string().describe("the users question"),
-          similarQuestions: z.array(z.string()).describe("keywords to search"),
+          question: z.string().describe('the users question'),
+          similarQuestions: z.array(z.string()).describe('keywords to search'),
         }),
         execute: async ({ similarQuestions }) => {
           const results = await Promise.all(
             similarQuestions.map(
-              async (question) => await findRelevantContent(question),
-            ),
+              async (question) => await findRelevantContent(question)
+            )
           );
           // Flatten the array of arrays and remove duplicates based on 'name'
           const uniqueResults = Array.from(
-            new Map(results.flat().map((item) => [item?.name, item])).values(),
+            new Map(results.flat().map((item) => [item?.name, item])).values()
           );
           return uniqueResults;
         },
@@ -60,18 +61,18 @@ export async function POST(req: Request) {
       understandQuery: tool({
         description: `understand the users query. use this tool on every prompt.`,
         parameters: z.object({
-          query: z.string().describe("the users query"),
+          query: z.string().describe('the users query'),
           toolsToCallInOrder: z
             .array(z.string())
             .describe(
-              "these are the tools you need to call in the order necessary to respond to the users query",
+              'these are the tools you need to call in the order necessary to respond to the users query'
             ),
         }),
         execute: async ({ query }) => {
           const { object } = await generateObject({
-            model: openai("gpt-4o"),
+            model: openai('gpt-4o'),
             system:
-              "You are a query understanding assistant. Analyze the user query and generate similar questions.",
+              'You are a query understanding assistant. Analyze the user query and generate similar questions.',
             schema: z.object({
               questions: z
                 .array(z.string())

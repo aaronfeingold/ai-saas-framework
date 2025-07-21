@@ -1,18 +1,17 @@
-import 'server-only';
-
 import { neon } from '@neondatabase/serverless';
+import { count, eq, ilike } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/neon-http';
 import {
-  pgTable,
-  text,
-  numeric,
   integer,
-  timestamp,
+  numeric,
   pgEnum,
-  serial
+  pgTable,
+  serial,
+  text,
+  timestamp,
 } from 'drizzle-orm/pg-core';
-import { count, eq, ilike } from 'drizzle-orm';
 import { createInsertSchema } from 'drizzle-zod';
+import 'server-only';
 
 export const db = drizzle(neon(process.env.POSTGRES_URL!));
 
@@ -25,7 +24,7 @@ export const products = pgTable('products', {
   status: statusEnum('status').notNull(),
   price: numeric('price', { precision: 10, scale: 2 }).notNull(),
   stock: integer('stock').notNull(),
-  availableAt: timestamp('available_at').notNull()
+  availableAt: timestamp('available_at').notNull(),
 });
 
 export type SelectProduct = typeof products.$inferSelect;
@@ -48,7 +47,7 @@ export async function getProducts(
         .where(ilike(products.name, `%${search}%`))
         .limit(1000),
       newOffset: null,
-      totalProducts: 0
+      totalProducts: 0,
     };
   }
 
@@ -56,14 +55,14 @@ export async function getProducts(
     return { products: [], newOffset: null, totalProducts: 0 };
   }
 
-  let totalProducts = await db.select({ count: count() }).from(products);
-  let moreProducts = await db.select().from(products).limit(5).offset(offset);
-  let newOffset = moreProducts.length >= 5 ? offset + 5 : null;
+  const totalProducts = await db.select({ count: count() }).from(products);
+  const moreProducts = await db.select().from(products).limit(5).offset(offset);
+  const newOffset = moreProducts.length >= 5 ? offset + 5 : null;
 
   return {
     products: moreProducts,
     newOffset,
-    totalProducts: totalProducts[0].count
+    totalProducts: totalProducts[0].count,
   };
 }
 

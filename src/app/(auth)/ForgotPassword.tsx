@@ -1,16 +1,20 @@
 import React, { useState } from 'react';
+
+import { usePathname } from 'next/navigation';
+
+import { Loader2 } from 'lucide-react';
+import { useFormStatus } from 'react-dom';
+
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
-  DialogTitle
+  DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { useFormStatus } from 'react-dom';
+
 import { resetPasswordForEmail } from './action';
-import { usePathname } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
 
 interface ForgotPasswordProps {
   open: boolean;
@@ -19,7 +23,7 @@ interface ForgotPasswordProps {
 
 export default function ForgotPassword({
   open,
-  handleClose
+  handleClose,
 }: ForgotPasswordProps) {
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
@@ -49,7 +53,7 @@ export default function ForgotPassword({
         </DialogHeader>
 
         <form action={handleSubmit} noValidate className="space-y-4">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             Enter your account&apos;s email address, and we&apos;ll send you a
             link to reset your password.
           </p>
@@ -64,11 +68,11 @@ export default function ForgotPassword({
             onChange={(e) => setEmail(e.target.value)}
           />
 
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          {error && <p className="text-destructive text-sm">{error}</p>}
 
           <SubmitButton />
 
-          <div className="flex justify-end mt-2">
+          <div className="mt-2 flex justify-end">
             <Button type="button" variant="ghost" onClick={handleClose}>
               Cancel
             </Button>

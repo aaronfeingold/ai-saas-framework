@@ -1,19 +1,20 @@
-import { Button } from '@/components/ui/button';
-import { auth, signOut } from '@/lib/auth';
 import Image from 'next/image';
+import Link from 'next/link';
+
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuTrigger
+  DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import Link from 'next/link';
+import { auth, signOut } from '@/lib/auth';
 
 export async function User() {
-  let session = await auth();
-  let user = session?.user;
+  const session = await auth();
+  const user = session?.user;
 
   return (
     <DropdownMenu>

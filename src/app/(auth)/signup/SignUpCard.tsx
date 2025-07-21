@@ -1,23 +1,28 @@
 'use client';
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+
+import Link from 'next/link';
+
+import { Check, Loader2, X } from 'lucide-react';
+import { useFormStatus } from 'react-dom';
+
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Check, X } from 'lucide-react';
-import ForgotPassword from '../ForgotPassword';
-import { GoogleIcon } from '../CustomIcons';
-import { signup } from '../action';
-import { useFormStatus } from 'react-dom';
-import { signInWithGoogle } from '../OAuth';
-import Link from 'next/link';
+import { Label } from '@/components/ui/label';
 import {
   Popover,
   PopoverContent,
-  PopoverTrigger
+  PopoverTrigger,
 } from '@/components/ui/popover';
+import { Separator } from '@/components/ui/separator';
+
+import { GoogleIcon } from '../CustomIcons';
+import ForgotPassword from '../ForgotPassword';
+import { signInWithGoogle } from '../OAuth';
+import { signup } from '../action';
 
 export default function SignInCard() {
   const [email, setEmail] = useState('');
@@ -38,7 +43,7 @@ export default function SignInCard() {
     length: false,
     uppercase: false,
     lowercase: false,
-    number: false
+    number: false,
   });
   const passwordRef = useRef<HTMLInputElement>(null);
 
@@ -57,7 +62,7 @@ export default function SignInCard() {
 
       setAlertMessage({
         type: result.success ? 'success' : 'error',
-        message: result.message
+        message: result.message,
       });
 
       // Clear message after 5 seconds
@@ -122,7 +127,7 @@ export default function SignInCard() {
       length: password.length >= 6,
       uppercase: /[A-Z]/.test(password),
       lowercase: /[a-z]/.test(password),
-      number: /[0-9]/.test(password)
+      number: /[0-9]/.test(password),
     };
     setPasswordRequirements(requirements);
   };
@@ -159,11 +164,11 @@ export default function SignInCard() {
   }, [password, showPasswordRequirements]);
 
   return (
-    <div className="flex justify-center items-center">
+    <div className="flex items-center justify-center">
       <div className="w-full sm:w-[350px] md:w-[400px]">
         <Card className="shadow-md">
-          <CardContent className="p-4 pt-6 space-y-4">
-            <h1 className="text-2xl font-semibold text-foreground">Sign Up</h1>
+          <CardContent className="space-y-4 p-4 pt-6">
+            <h1 className="text-foreground text-2xl font-semibold">Sign Up</h1>
 
             <form action={handleSubmit} noValidate className="space-y-4">
               <div className="space-y-2">
@@ -180,7 +185,7 @@ export default function SignInCard() {
                   onChange={(e) => setEmail(e.target.value)}
                 />
                 {emailError && (
-                  <p className="text-sm text-destructive">
+                  <p className="text-destructive text-sm">
                     {emailErrorMessage}
                   </p>
                 )}
@@ -198,7 +203,7 @@ export default function SignInCard() {
                 />
               </div>
 
-              <div className="space-y-2 relative">
+              <div className="relative space-y-2">
                 <Label htmlFor="password">Password</Label>
                 <Popover
                   open={showPasswordRequirements}
@@ -231,7 +236,7 @@ export default function SignInCard() {
                   </PopoverContent>
                 </Popover>
                 {passwordError && (
-                  <p className="text-sm text-destructive">
+                  <p className="text-destructive text-sm">
                     {passwordErrorMessage}
                   </p>
                 )}
@@ -251,7 +256,7 @@ export default function SignInCard() {
                   onChange={(e) => setConfirmPassword(e.target.value)}
                 />
                 {confirmPasswordError && (
-                  <p className="text-sm text-destructive">
+                  <p className="text-destructive text-sm">
                     {confirmPasswordErrorMessage}
                   </p>
                 )}
@@ -266,7 +271,7 @@ export default function SignInCard() {
                   }
                   className={
                     alertMessage.type === 'success'
-                      ? 'border-green-600 bg-green-50 text-green-800 dark:bg-green-950 dark:text-green-200 dark:border-green-800'
+                      ? 'border-green-600 bg-green-50 text-green-800 dark:border-green-800 dark:bg-green-950 dark:text-green-200'
                       : ''
                   }
                 >
@@ -285,7 +290,7 @@ export default function SignInCard() {
 
             <div className="relative py-2">
               <Separator />
-              <span className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-background px-2 text-muted-foreground text-sm">
+              <span className="bg-background text-muted-foreground absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 transform px-2 text-sm">
                 or
               </span>
             </div>
@@ -334,15 +339,15 @@ interface PasswordRequirementsProps {
 function PasswordRequirements({ requirements }: PasswordRequirementsProps) {
   return (
     <div>
-      <p className="text-sm font-medium mb-1 text-foreground">
+      <p className="text-foreground mb-1 text-sm font-medium">
         Password Requirements:
       </p>
-      <ul className="space-y-1 m-0">
+      <ul className="m-0 space-y-1">
         <li className="flex items-center gap-2 text-sm">
           {requirements.length ? (
             <Check className="h-4 w-4 text-green-500" />
           ) : (
-            <X className="h-4 w-4 text-destructive" />
+            <X className="text-destructive h-4 w-4" />
           )}
           <span
             className={
@@ -356,7 +361,7 @@ function PasswordRequirements({ requirements }: PasswordRequirementsProps) {
           {requirements.number ? (
             <Check className="h-4 w-4 text-green-500" />
           ) : (
-            <X className="h-4 w-4 text-destructive" />
+            <X className="text-destructive h-4 w-4" />
           )}
           <span
             className={

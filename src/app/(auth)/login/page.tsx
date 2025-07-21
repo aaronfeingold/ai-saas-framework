@@ -1,9 +1,13 @@
-import 'server-only';
 import React from 'react';
-import SignInCard from './SignInCard';
-import Content from '../Content';
+
 import { redirect } from 'next/navigation';
+
+import 'server-only';
+
 import { getSession } from '@/lib/server/supabase';
+
+import Content from '../Content';
+import SignInCard from './SignInCard';
 
 export default async function AuthPage() {
   const session = await getSession();
@@ -12,8 +16,8 @@ export default async function AuthPage() {
   }
 
   return (
-    <div className="flex flex-col justify-between pt-4 h-auto md:h-[calc(100vh-44px)]">
-      <div className="flex flex-col-reverse md:flex-row justify-center gap-12 h-full md:h-[calc(100vh-44px)] p-1">
+    <div className="flex h-auto flex-col justify-between pt-4 md:h-[calc(100vh-44px)]">
+      <div className="flex h-full flex-col-reverse justify-center gap-12 p-1 md:h-[calc(100vh-44px)] md:flex-row">
         <Content />
         <SignInCard />
       </div>

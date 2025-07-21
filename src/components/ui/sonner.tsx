@@ -1,6 +1,7 @@
 'use client';
 
 import { useTheme } from 'next-themes';
+
 import type { ToasterProps } from 'sonner';
 import { Toaster as Sonner } from 'sonner';
 
@@ -19,8 +20,8 @@ const Toaster = ({ ...props }: ToasterProps) => {
           actionButton:
             'group-[.toast]:bg-primary group-[.toast]:text-primary-foreground font-medium',
           cancelButton:
-            'group-[.toast]:bg-muted group-[.toast]:text-muted-foreground font-medium'
-        }
+            'group-[.toast]:bg-muted group-[.toast]:text-muted-foreground font-medium',
+        },
       }}
       {...props}
     />

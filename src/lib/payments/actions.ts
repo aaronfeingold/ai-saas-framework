@@ -1,2 +1,2 @@
 // Re-export from stripe directory
-export * from '../stripe/actions'
+export * from '../stripe/actions';

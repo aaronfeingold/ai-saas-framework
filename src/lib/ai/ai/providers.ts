@@ -1,16 +1,17 @@
+import { xai } from '@ai-sdk/xai';
 import {
   customProvider,
   extractReasoningMiddleware,
   wrapLanguageModel,
 } from 'ai';
-import { xai } from '@ai-sdk/xai';
+
+import { isTestEnvironment } from '../constants';
 import {
   artifactModel,
   chatModel,
   reasoningModel,
   titleModel,
 } from './models.test';
-import { isTestEnvironment } from '../constants';
 
 export const myProvider = isTestEnvironment
   ? customProvider({

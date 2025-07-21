@@ -1,20 +1,21 @@
-import { embed, embedMany } from "ai";
-import { openai } from "@ai-sdk/openai";
-import { cosineDistance, desc, gt, sql } from "drizzle-orm";
-import { embeddings } from "../db/schema/embeddings";
-import { db } from "../db";
+import { openai } from '@ai-sdk/openai';
+import { embed, embedMany } from 'ai';
+import { cosineDistance, desc, gt, sql } from 'drizzle-orm';
 
-const embeddingModel = openai.embedding("text-embedding-ada-002");
+import { db } from '../db';
+import { embeddings } from '../db/schema/embeddings';
+
+const embeddingModel = openai.embedding('text-embedding-ada-002');
 
 const generateChunks = (input: string): string[] => {
   return input
     .trim()
-    .split(".")
-    .filter((i) => i !== "");
+    .split('.')
+    .filter((i) => i !== '');
 };
 
 export const generateEmbeddings = async (
-  value: string,
+  value: string
 ): Promise<Array<{ embedding: number[]; content: string }>> => {
   const chunks = generateChunks(value);
   const { embeddings } = await embedMany({
@@ -25,7 +26,7 @@ export const generateEmbeddings = async (
 };
 
 export const generateEmbedding = async (value: string): Promise<number[]> => {
-  const input = value.replaceAll("\n", " ");
+  const input = value.replaceAll('\n', ' ');
   const { embedding } = await embed({
     model: embeddingModel,
     value: input,

@@ -1,37 +1,40 @@
 'use client';
 
-import {
-  TableHead,
-  TableRow,
-  TableHeader,
-  TableBody,
-  Table
-} from '@/components/ui/table';
+import { useRouter } from 'next/navigation';
+
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
   CardDescription,
   CardFooter,
   CardHeader,
-  CardTitle
+  CardTitle,
 } from '@/components/ui/card';
-import { Product } from './product';
+import {
+  Table,
+  TableBody,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { SelectProduct } from '@/lib/db';
-import { useRouter } from 'next/navigation';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+
+import { Product } from './product';
 
 export function ProductsTable({
   products,
   offset,
-  totalProducts
+  totalProducts,
 }: {
   products: SelectProduct[];
   offset: number;
   totalProducts: number;
 }) {
-  let router = useRouter();
-  let productsPerPage = 5;
+  const router = useRouter();
+  const productsPerPage = 5;
 
   function prevPage() {
     router.back();
@@ -76,11 +79,15 @@ export function ProductsTable({
         </Table>
       </CardContent>
       <CardFooter>
-        <form className="flex items-center w-full justify-between">
-          <div className="text-xs text-muted-foreground">
+        <form className="flex w-full items-center justify-between">
+          <div className="text-muted-foreground text-xs">
             Showing{' '}
             <strong>
-              {Math.max(0, Math.min(offset - productsPerPage, totalProducts) + 1)}-{offset}
+              {Math.max(
+                0,
+                Math.min(offset - productsPerPage, totalProducts) + 1
+              )}
+              -{offset}
             </strong>{' '}
             of <strong>{totalProducts}</strong> products
           </div>

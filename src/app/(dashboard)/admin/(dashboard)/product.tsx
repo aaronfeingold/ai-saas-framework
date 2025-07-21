@@ -1,4 +1,7 @@
 import Image from 'next/image';
+
+import { MoreHorizontal } from 'lucide-react';
+
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -6,11 +9,11 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuTrigger
+  DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal } from 'lucide-react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { SelectProduct } from '@/lib/db';
+
 import { deleteProduct } from './actions';
 
 export function Product({ product }: { product: SelectProduct }) {
@@ -34,7 +37,7 @@ export function Product({ product }: { product: SelectProduct }) {
       <TableCell className="hidden md:table-cell">{`$${product.price}`}</TableCell>
       <TableCell className="hidden md:table-cell">{product.stock}</TableCell>
       <TableCell className="hidden md:table-cell">
-        {product.availableAt.toLocaleDateString("en-US")}
+        {product.availableAt.toLocaleDateString('en-US')}
       </TableCell>
       <TableCell>
         <DropdownMenu>

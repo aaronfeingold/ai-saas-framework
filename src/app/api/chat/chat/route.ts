@@ -1,13 +1,30 @@
+import { after } from 'next/server';
+
+import { geolocation } from '@vercel/functions';
 import {
+  JsonToSseTransformStream,
   convertToModelMessages,
   createUIMessageStream,
-  JsonToSseTransformStream,
   smoothStream,
   stepCountIs,
   streamText,
 } from 'ai';
-import { auth, type UserType } from '@/app/(auth)/auth';
+import {
+  type ResumableStreamContext,
+  createResumableStreamContext,
+} from 'resumable-stream';
+
+import { type UserType, auth } from '@/app/(auth)/auth';
+import type { VisibilityType } from '@/components/visibility-selector';
+import { entitlementsByUserType } from '@/lib/ai/entitlements';
+import type { ChatModel } from '@/lib/ai/models';
 import { type RequestHints, systemPrompt } from '@/lib/ai/prompts';
+import { myProvider } from '@/lib/ai/providers';
+import { createDocument } from '@/lib/ai/tools/create-document';
+import { getWeather } from '@/lib/ai/tools/get-weather';
+import { requestSuggestions } from '@/lib/ai/tools/request-suggestions';
+import { updateDocument } from '@/lib/ai/tools/update-document';
+import { isProductionEnvironment } from '@/lib/constants';
 import {
   createStreamId,
   deleteChatById,
@@ -17,26 +34,12 @@ import {
   saveChat,
   saveMessages,
 } from '@/lib/db/queries';
-import { convertToUIMessages, generateUUID } from '@/lib/utils';
-import { generateTitleFromUserMessage } from '../../actions';
-import { createDocument } from '@/lib/ai/tools/create-document';
-import { updateDocument } from '@/lib/ai/tools/update-document';
-import { requestSuggestions } from '@/lib/ai/tools/request-suggestions';
-import { getWeather } from '@/lib/ai/tools/get-weather';
-import { isProductionEnvironment } from '@/lib/constants';
-import { myProvider } from '@/lib/ai/providers';
-import { entitlementsByUserType } from '@/lib/ai/entitlements';
-import { postRequestBodySchema, type PostRequestBody } from './schema';
-import { geolocation } from '@vercel/functions';
-import {
-  createResumableStreamContext,
-  type ResumableStreamContext,
-} from 'resumable-stream';
-import { after } from 'next/server';
 import { ChatSDKError } from '@/lib/errors';
 import type { ChatMessage } from '@/lib/types';
-import type { ChatModel } from '@/lib/ai/models';
-import type { VisibilityType } from '@/components/visibility-selector';
+import { convertToUIMessages, generateUUID } from '@/lib/utils';
+
+import { generateTitleFromUserMessage } from '../../actions';
+import { type PostRequestBody, postRequestBodySchema } from './schema';
 
 export const maxDuration = 60;
 
@@ -48,10 +51,10 @@ export function getStreamContext() {
       globalStreamContext = createResumableStreamContext({
         waitUntil: after,
       });
-    } catch (error: any) {
-      if (error.message.includes('REDIS_URL')) {
+    } catch (error: unknown) {
+      if (error instanceof Error && error.message.includes('REDIS_URL')) {
         console.log(
-          ' > Resumable streams are disabled due to missing REDIS_URL',
+          ' > Resumable streams are disabled due to missing REDIS_URL'
         );
       } else {
         console.error(error);
@@ -68,7 +71,7 @@ export async function POST(request: Request) {
   try {
     const json = await request.json();
     requestBody = postRequestBodySchema.parse(json);
-  } catch (_) {
+  } catch {
     return new ChatSDKError('bad_request:api').toResponse();
   }
 
@@ -186,7 +189,7 @@ export async function POST(request: Request) {
         dataStream.merge(
           result.toUIMessageStream({
             sendReasoning: true,
-          }),
+          })
         );
       },
       generateId: generateUUID,
@@ -212,8 +215,8 @@ export async function POST(request: Request) {
     if (streamContext) {
       return new Response(
         await streamContext.resumableStream(streamId, () =>
-          stream.pipeThrough(new JsonToSseTransformStream()),
-        ),
+          stream.pipeThrough(new JsonToSseTransformStream())
+        )
       );
     } else {
       return new Response(stream.pipeThrough(new JsonToSseTransformStream()));

@@ -1,11 +1,14 @@
-import { z } from 'zod';
 import type { Session } from 'next-auth';
-import { streamObject, tool, type UIMessageStreamWriter } from 'ai';
+
+import { type UIMessageStreamWriter, streamObject, tool } from 'ai';
+import { z } from 'zod';
+
 import { getDocumentById, saveSuggestions } from '@/lib/db/queries';
 import type { Suggestion } from '@/lib/db/schema';
-import { generateUUID } from '@/lib/utils';
-import { myProvider } from '../providers';
 import type { ChatMessage } from '@/lib/types';
+import { generateUUID } from '@/lib/utils';
+
+import { myProvider } from '../providers';
 
 interface RequestSuggestionsProps {
   session: Session;
@@ -50,7 +53,7 @@ export const requestSuggestions = ({
       });
 
       for await (const element of elementStream) {
-        // @ts-ignore todo: fix type
+        // @ts-expect-error todo: fix type
         const suggestion: Suggestion = {
           originalText: element.originalSentence,
           suggestedText: element.suggestedSentence,
