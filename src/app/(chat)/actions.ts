@@ -3,8 +3,17 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
-import { getDatabase } from '@/lib/db/mongodb';
-import type { Chat } from '@/lib/db/schema';
+import { gt } from 'drizzle-orm';
+
+import { db } from '@/lib/db/postgres';
+import {
+  createChat as createChatQuery,
+  deleteChat as deleteChatQuery,
+  getChatById,
+  getMessageById,
+  updateChatTitle as updateChatTitleQuery,
+} from '@/lib/db/queries';
+import { messages } from '@/lib/db/schema';
 import { getSession } from '@/lib/server/supabase';
 
 export async function deleteTrailingMessages(
@@ -18,31 +27,24 @@ export async function deleteTrailingMessages(
   }
 
   try {
-    const db = await getDatabase();
-    const chats = db.collection('chats');
-    const messages = db.collection('messages');
-
     // Verify chat ownership
-    const chat = await chats.findOne({
-      id: chatId,
-      user_id: user.id,
-    });
+    const chat = await getChatById(chatId, user.id);
 
     if (!chat) {
       throw new Error('Chat not found or unauthorized');
     }
 
-    // Delete messages after the specified message ID
-    const messageToKeep = await messages.findOne({ id: messageId });
+    // Get the message to keep
+    const messageToKeep = await getMessageById(messageId, user.id);
 
     if (!messageToKeep) {
       throw new Error('Message not found');
     }
 
-    await messages.deleteMany({
-      chat_id: chatId,
-      created_at: { $gt: messageToKeep.created_at },
-    });
+    // Delete messages created after the specified message
+    await db
+      .delete(messages)
+      .where(gt(messages.createdAt, messageToKeep.createdAt));
 
     revalidatePath(`/chat/${chatId}`);
   } catch (error) {
@@ -59,22 +61,12 @@ export async function deleteChat(chatId: string) {
   }
 
   try {
-    const db = await getDatabase();
-    const chats = db.collection('chats');
-    const messages = db.collection('messages');
+    // Delete chat (messages will be deleted via cascade)
+    const deleted = await deleteChatQuery(chatId, user.id);
 
-    // Verify chat ownership and delete
-    const result = await chats.deleteOne({
-      id: chatId,
-      user_id: user.id,
-    });
-
-    if (result.deletedCount === 0) {
+    if (!deleted) {
       throw new Error('Chat not found or unauthorized');
     }
-
-    // Delete all messages for this chat
-    await messages.deleteMany({ chat_id: chatId });
 
     revalidatePath('/');
     redirect('/');
@@ -92,20 +84,9 @@ export async function updateChatTitle(chatId: string, title: string) {
   }
 
   try {
-    const db = await getDatabase();
-    const chats = db.collection('chats');
+    const updatedChat = await updateChatTitleQuery(chatId, user.id, title);
 
-    const result = await chats.updateOne(
-      { id: chatId, user_id: user.id },
-      {
-        $set: {
-          title,
-          updated_at: new Date(),
-        },
-      }
-    );
-
-    if (result.matchedCount === 0) {
+    if (!updatedChat) {
       throw new Error('Chat not found or unauthorized');
     }
 
@@ -124,26 +105,15 @@ export async function createChat(): Promise<string> {
   }
 
   try {
-    const db = await getDatabase();
-    const chats = db.collection('chats');
-
-    const chatId = crypto.randomUUID();
-    const now = new Date();
-
-    const newChat: Omit<Chat, 'id'> & { id: string } = {
-      id: chatId,
-      user_id: user.id,
+    const newChat = await createChatQuery({
+      userId: user.id,
       title: 'New Chat',
       visibility: 'private',
-      model_id: 'claude-3-5-sonnet-20241022',
-      created_at: now,
-      updated_at: now,
-    };
-
-    await chats.insertOne(newChat);
+      modelId: 'claude-3-5-sonnet-20241022',
+    });
 
     revalidatePath('/');
-    return chatId;
+    return newChat.id;
   } catch (error) {
     console.error('Error creating chat:', error);
     throw new Error('Failed to create chat');

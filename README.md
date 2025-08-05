@@ -4,12 +4,11 @@ A comprehensive Next.js 15 framework for building AI-powered SaaS applications w
 
 ## Architecture Overview
 
-This framework implements a three-database architecture for optimal performance isolation:
+This framework implements a simplified two-database architecture for optimal performance and reduced complexity:
 
 - **Supabase**: User authentication, profiles, subscriptions, sessions
-- **MongoDB**: Domain content, user-generated data, business logic
-- **PostgreSQL + pgvector**: Vector embeddings, semantic search, RAG operations
-- **Redis**: Caching layer for all databases
+- **PostgreSQL + pgvector**: Business data, domain content, vector embeddings, semantic search, RAG operations
+- **Redis**: Enhanced caching layer for all databases
 
 ## Quick Start
 
@@ -79,41 +78,15 @@ CREATE POLICY "Users can update own profile" ON profiles
   FOR UPDATE USING (auth.uid() = id);
 ```
 
-### 2. MongoDB Setup (Content Database)
+### 2. PostgreSQL + pgvector Setup (Business + Vector Database)
 
-1. **Option A: MongoDB Atlas (Recommended for production)**
-   - Create account at https://www.mongodb.com/atlas
-   - Create a new cluster
-   - Get connection string from Connect > Connect your application
-   - Format: `mongodb+srv://username:password@cluster.mongodb.net/dbname`
-
-2. **Option B: Local MongoDB**
-
-   ```bash
-   # Install MongoDB locally
-   brew install mongodb/brew/mongodb-community  # macOS
-   sudo apt-get install mongodb  # Ubuntu
-
-   # Start MongoDB
-   brew services start mongodb/brew/mongodb-community  # macOS
-   sudo systemctl start mongod  # Ubuntu
-   ```
-
-3. **Configure environment variables:**
-
-```env
-MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/ai-saas-framework
-MONGODB_DB_NAME=ai-saas-framework
-```
-
-### 3. PostgreSQL + pgvector Setup (Vector Database)
-
-1. **Option A: Supabase (Separate Project for Vectors)**
-   - Create a second Supabase project for vectors
+1. **Option A: Supabase (Recommended - use your existing project or create a new one)**
+   - Use your existing Supabase project or create a dedicated one for PostgreSQL
    - Enable the pgvector extension in SQL Editor:
 
    ```sql
    CREATE EXTENSION IF NOT EXISTS vector;
+   CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
    ```
 
 2. **Option B: Local PostgreSQL with pgvector**
@@ -133,21 +106,24 @@ MONGODB_DB_NAME=ai-saas-framework
    brew services start postgresql  # macOS
    sudo systemctl start postgresql  # Ubuntu
 
-   # Create database and enable extension
+   # Create database and enable extensions
    psql postgres
-   CREATE DATABASE vector_db;
-   \c vector_db
+   CREATE DATABASE ai_saas_framework;
+   \c ai_saas_framework
    CREATE EXTENSION vector;
+   CREATE EXTENSION "uuid-ossp";
    ```
 
 3. **Configure environment variables:**
 
 ```env
-VECTOR_DATABASE_URL=postgresql://username:password@localhost:5432/vector_db
-VECTOR_DATABASE_DIRECT_URL=postgresql://username:password@localhost:5432/vector_db
+POSTGRES_URL=postgresql://username:password@localhost:5432/ai_saas_framework
+POSTGRES_DIRECT_URL=postgresql://username:password@localhost:5432/ai_saas_framework
+# Legacy compatibility (can be same as POSTGRES_URL)
+VECTOR_DATABASE_URL=postgresql://username:password@localhost:5432/ai_saas_framework
 ```
 
-### 4. Redis Setup (Caching Layer)
+### 3. Redis Setup (Caching Layer)
 
 1. **Option A: Redis Cloud (Recommended for production)**
    - Sign up at https://redis.com/try-free/
@@ -224,8 +200,8 @@ openssl rand -base64 32
 ### Initialize Databases
 
 ```bash
-# Initialize vector database tables
-pnpm db:vector:init
+# Initialize PostgreSQL database (extensions + tables)
+pnpm db:init
 
 # Test all database connections
 curl http://localhost:3000/api/health
@@ -242,8 +218,12 @@ curl http://localhost:3000/api/health
 # Response format:
 {
   "supabase": { "healthy": true, "message": "Connected", "timestamp": "..." },
-  "mongodb": { "healthy": true, "message": "Connected", "timestamp": "..." },
-  "vector": { "healthy": true, "message": "Connected", "timestamp": "..." },
+  "postgres": {
+    "healthy": true,
+    "message": "Connected - Business + Vector operations ready",
+    "extensions": ["vector", "uuid-ossp"],
+    "timestamp": "..."
+  },
   "redis": { "healthy": true, "message": "Connected", "timestamp": "..." },
   "timestamp": "2024-01-15T10:30:00.000Z"
 }
@@ -255,8 +235,7 @@ curl http://localhost:3000/api/health
 
 1. **Set up production databases:**
    - Supabase: Upgrade to Pro plan for production usage
-   - MongoDB Atlas: Configure production cluster with appropriate scaling
-   - Vector DB: Use managed PostgreSQL with pgvector support
+   - PostgreSQL: Use managed PostgreSQL with pgvector support (Supabase, AWS RDS, etc.)
    - Redis: Use Redis Cloud or managed Redis service
 
 2. **Configure production environment variables in your deployment platform**
@@ -336,24 +315,23 @@ curl http://localhost:3000/api/health
 
 ## Architecture Details
 
-### Multi-Database Strategy
+### Simplified Database Strategy
 
-This framework uses separate databases for different concerns to optimize performance and scalability:
+This framework uses a streamlined two-database architecture for optimal performance and reduced complexity:
 
-1. **User Database (Supabase):** High-frequency, low-latency operations
-2. **Content Database (MongoDB):** Complex queries and document storage
-3. **Vector Database (PostgreSQL + pgvector):** Computationally expensive AI operations
-4. **Cache Layer (Redis):** Fast access to frequently used data
+1. **User Database (Supabase):** High-frequency, low-latency authentication operations
+2. **Business + Vector Database (PostgreSQL + pgvector):** All business data, content, and AI operations
+3. **Cache Layer (Redis):** Enhanced caching for frequently accessed data
 
 ### Data Flow
 
-1. **User Authentication:** Supabase handles all auth operations
-2. **Content Management:** MongoDB stores and retrieves content
-3. **AI Operations:** Vector database provides semantic search and RAG
-4. **Cross-Database Sync:** Event-driven updates maintain consistency
-5. **Performance:** Redis caching reduces database load
+1. **User Authentication:** Supabase handles all auth operations with dedicated connection pool
+2. **Business Operations:** PostgreSQL handles chat, content, and business logic with optimized queries
+3. **AI Operations:** Same PostgreSQL instance provides semantic search and RAG with vector operations
+4. **Performance:** Enhanced Redis caching compensates for unified database approach
+5. **Connection Management:** Optimized connection pooling balances business and vector workloads
 
-This architecture ensures that expensive AI operations don't impact user authentication speed, and content operations don't slow down real-time chat functionality.
+This simplified architecture reduces operational complexity while maintaining performance through intelligent caching and connection pooling strategies.
 
 ## Contributing
 

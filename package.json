@@ -16,7 +16,8 @@
     "test:ci": "jest --ci --coverage --watchAll=false",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "db:vector:init": "node -e \"require('./src/lib/db/vector.ts').initializeVectorDB().then(() => console.log('Vector DB initialized')).catch(console.error)\"",
+    "db:init": "node -e \"require('./src/lib/db/vector.ts').initializePostgresDB().then(() => console.log('PostgreSQL DB initialized')).catch(console.error)\"",
+    "db:vector:init": "node -e \"require('./src/lib/db/vector.ts').initializePostgresDB().then(() => console.log('PostgreSQL DB initialized')).catch(console.error)\"",
     "health": "curl http://localhost:3000/api/health",
     "prepare": "husky"
   },
@@ -57,8 +58,6 @@
     "framer-motion": "^12.4.0",
     "ioredis": "^5.6.1",
     "lucide-react": "^0.525.0",
-    "mongodb": "^6.17.0",
-    "mongoose": "^8.16.3",
     "nanoid": "^5.1.5",
     "next": "15.4.1",
     "nuqs": "^2.4.3",

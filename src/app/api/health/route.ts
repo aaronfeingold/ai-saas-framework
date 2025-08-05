@@ -1,18 +1,16 @@
 import { NextResponse } from 'next/server';
 
 import { checkRedisHealth } from '@/lib/db/cache';
-import { checkMongoHealth } from '@/lib/db/mongodb';
 import { checkSupabaseHealth } from '@/lib/db/supabase';
-import { checkVectorHealth } from '@/lib/db/vector';
+import { checkPostgresHealth } from '@/lib/db/vector';
 
 export async function GET() {
   try {
     // Run all health checks in parallel
-    const [supabaseHealth, mongoHealth, vectorHealth, redisHealth] =
+    const [supabaseHealth, postgresHealth, redisHealth] =
       await Promise.allSettled([
         checkSupabaseHealth(),
-        checkMongoHealth(),
-        checkVectorHealth(),
+        checkPostgresHealth(),
         checkRedisHealth(),
       ]);
 
@@ -21,13 +19,9 @@ export async function GET() {
         supabaseHealth.status === 'fulfilled'
           ? supabaseHealth.value
           : { healthy: false, message: 'Health check failed' },
-      mongodb:
-        mongoHealth.status === 'fulfilled'
-          ? mongoHealth.value
-          : { healthy: false, message: 'Health check failed' },
-      vector:
-        vectorHealth.status === 'fulfilled'
-          ? vectorHealth.value
+      postgres:
+        postgresHealth.status === 'fulfilled'
+          ? postgresHealth.value
           : { healthy: false, message: 'Health check failed' },
       redis:
         redisHealth.status === 'fulfilled'
