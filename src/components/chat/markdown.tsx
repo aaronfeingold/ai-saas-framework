@@ -8,6 +8,11 @@ import rehypeKatex from 'rehype-katex';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 
+import {
+  CodeBlock,
+  CodeBlockCopyButton,
+} from '@/components/ai-elements/code-block';
+
 interface MarkdownProps {
   children: string;
   className?: string;
@@ -22,10 +27,17 @@ function PureMarkdown({ children, className }: MarkdownProps) {
       components={{
         code({ inline, className, children, ...props }) {
           const match = /language-(\w+)/.exec(className || '');
+          const language = match ? match[1] : 'text';
+          const codeContent = String(children).replace(/\n$/, '');
+
           return !inline && match ? (
-            <pre className={className} {...props}>
-              <code>{String(children).replace(/\n$/, '')}</code>
-            </pre>
+            <CodeBlock
+              code={codeContent}
+              language={language}
+              showLineNumbers={codeContent.split('\n').length > 3}
+            >
+              <CodeBlockCopyButton />
+            </CodeBlock>
           ) : (
             <code
               className="bg-muted rounded px-1 py-0.5 font-mono text-sm"
@@ -36,14 +48,8 @@ function PureMarkdown({ children, className }: MarkdownProps) {
           );
         },
         pre({ children, ...props }) {
-          return (
-            <pre
-              className="bg-muted overflow-x-auto rounded-lg border p-4"
-              {...props}
-            >
-              {children}
-            </pre>
-          );
+          // Skip pre wrapper when using CodeBlock
+          return <>{children}</>;
         },
         table({ children, ...props }) {
           return (

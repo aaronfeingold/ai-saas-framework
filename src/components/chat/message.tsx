@@ -6,7 +6,14 @@ import type { UseChatHelpers } from '@ai-sdk/react';
 import cx from 'classnames';
 import equal from 'fast-deep-equal';
 import { AnimatePresence, motion } from 'framer-motion';
+import { CopyIcon, RefreshCcwIcon, ShareIcon } from 'lucide-react';
 
+import { Action, Actions } from '@/components/ai-elements/actions';
+import {
+  Message,
+  MessageAvatar,
+  MessageContent,
+} from '@/components/ai-elements/message';
 import { PencilEditIcon, SparklesIcon } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import {
@@ -67,24 +74,15 @@ const PurePreviewMessage = ({
         animate={{ y: 0, opacity: 1 }}
         data-role={message.role}
       >
-        <div
-          className={cn(
-            'flex w-full gap-4 group-data-[role=user]/message:ml-auto group-data-[role=user]/message:max-w-2xl',
-            {
-              'w-full': mode === 'edit',
-              'group-data-[role=user]/message:w-fit': mode !== 'edit',
-            }
-          )}
-        >
+        <Message from={message.role}>
           {message.role === 'assistant' && (
-            <div className="ring-border bg-background flex size-8 shrink-0 items-center justify-center rounded-full ring-1">
-              <div className="translate-y-px">
-                <SparklesIcon size={14} />
-              </div>
-            </div>
+            <MessageAvatar src="/api/placeholder-bot.svg" name="AI" />
+          )}
+          {message.role === 'user' && (
+            <MessageAvatar src="/api/placeholder-user.svg" name="You" />
           )}
 
-          <div
+          <MessageContent
             className={cn('flex w-full flex-col gap-4', {
               'min-h-96': message.role === 'assistant' && requiresScrollPadding,
             })}
@@ -326,8 +324,8 @@ const PurePreviewMessage = ({
                 isLoading={isLoading}
               />
             )}
-          </div>
-        </div>
+          </MessageContent>
+        </Message>
       </motion.div>
     </AnimatePresence>
   );
