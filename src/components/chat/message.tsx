@@ -6,9 +6,7 @@ import type { UseChatHelpers } from '@ai-sdk/react';
 import cx from 'classnames';
 import equal from 'fast-deep-equal';
 import { AnimatePresence, motion } from 'framer-motion';
-import { CopyIcon, RefreshCcwIcon, ShareIcon } from 'lucide-react';
 
-import { Action, Actions } from '@/components/ai-elements/actions';
 import {
   Message,
   MessageAvatar,
@@ -32,6 +30,7 @@ import { Markdown } from './markdown';
 import { MessageActions } from './message-actions';
 import { MessageEditor } from './message-editor';
 import { MessageReasoning } from './message-reasoning';
+import { MessageSources } from './message-sources';
 import { PreviewAttachment } from './preview-attachment';
 import { Weather } from './weather';
 
@@ -314,6 +313,13 @@ const PurePreviewMessage = ({
                 }
               }
             })}
+
+            {/* Display sources if available */}
+            {message.sources &&
+              Array.isArray(message.sources) &&
+              message.sources.length > 0 && (
+                <MessageSources sources={message.sources} className="mt-4" />
+              )}
 
             {!isReadonly && (
               <MessageActions

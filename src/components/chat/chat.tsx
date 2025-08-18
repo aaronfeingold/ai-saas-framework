@@ -20,6 +20,7 @@ import { ChatHeader } from '@/components/chat/chat-header';
 import { useArtifactSelector } from '@/hooks/use-artifact';
 import { useAutoResume } from '@/hooks/use-auto-resume';
 import { useChatVisibility } from '@/hooks/use-chat-visibility';
+import { type ModelId, getDefaultModel } from '@/lib/ai/providers';
 import type { Vote } from '@/lib/db/schema';
 import { ChatSDKError } from '@/lib/errors';
 import type { Attachment, ChatMessage } from '@/lib/types';
@@ -58,6 +59,9 @@ export function Chat({
   const { setDataStream } = useDataStream();
 
   const [input, setInput] = useState<string>('');
+  const [selectedModel, setSelectedModel] = useState<ModelId>(
+    (initialChatModel as ModelId) || getDefaultModel()
+  );
 
   const {
     messages,
@@ -73,15 +77,15 @@ export function Chat({
     experimental_throttle: 100,
     generateId: generateUUID,
     transport: new DefaultChatTransport({
-      api: '/api/chat',
+      api: '/api/chat/enhanced',
       fetch: fetchWithErrorHandlers,
       prepareSendMessagesRequest({ messages, id, body }) {
         return {
           body: {
-            id,
-            message: messages.at(-1),
-            selectedChatModel: initialChatModel,
-            selectedVisibilityType: visibilityType,
+            chatId: id,
+            messages,
+            selectedModel,
+            selectedFiles: [], // TODO: Add file selection
             ...body,
           },
         };
@@ -140,10 +144,11 @@ export function Chat({
       <div className="bg-background flex h-dvh min-w-0 flex-col">
         <ChatHeader
           chatId={id}
-          selectedModelId={initialChatModel}
+          selectedModelId={selectedModel}
           selectedVisibilityType={initialVisibilityType}
           isReadonly={isReadonly}
           session={session}
+          onModelSelect={setSelectedModel}
         />
 
         <Conversation>
