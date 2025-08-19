@@ -2,13 +2,13 @@ import Link from 'next/link';
 
 import { Analytics } from '@vercel/analytics/react';
 import {
+  FileText,
   Home,
   LineChart,
   Package,
   Package2,
   PanelLeft,
   Settings,
-  ShoppingCart,
   Users2,
 } from 'lucide-react';
 
@@ -72,23 +72,23 @@ function DesktopNav() {
           <span className="sr-only">Acme Inc</span>
         </Link>
 
-        <NavItem href="#" label="Dashboard">
+        <NavItem href="/admin" label="Dashboard">
           <Home className="h-5 w-5" />
         </NavItem>
 
-        <NavItem href="#" label="Orders">
-          <ShoppingCart className="h-5 w-5" />
+        <NavItem href="/admin/content" label="Content Management">
+          <FileText className="h-5 w-5" />
         </NavItem>
 
-        <NavItem href="/" label="Products">
+        <NavItem href="/admin/products" label="Products">
           <Package className="h-5 w-5" />
         </NavItem>
 
-        <NavItem href="/customers" label="Customers">
+        <NavItem href="/admin/customers" label="Customers">
           <Users2 className="h-5 w-5" />
         </NavItem>
 
-        <NavItem href="#" label="Analytics">
+        <NavItem href="/admin/analytics" label="Analytics">
           <LineChart className="h-5 w-5" />
         </NavItem>
       </nav>
@@ -129,39 +129,39 @@ function MobileNav() {
             <span className="sr-only">Vercel</span>
           </Link>
           <Link
-            href="#"
+            href="/admin"
             className="text-muted-foreground hover:text-foreground flex items-center gap-4 px-2.5"
           >
             <Home className="h-5 w-5" />
             Dashboard
           </Link>
           <Link
-            href="#"
+            href="/admin/content"
             className="text-muted-foreground hover:text-foreground flex items-center gap-4 px-2.5"
           >
-            <ShoppingCart className="h-5 w-5" />
-            Orders
+            <FileText className="h-5 w-5" />
+            Content Management
           </Link>
           <Link
-            href="#"
+            href="/admin/products"
             className="text-foreground flex items-center gap-4 px-2.5"
           >
             <Package className="h-5 w-5" />
             Products
           </Link>
           <Link
-            href="#"
+            href="/admin/customers"
             className="text-muted-foreground hover:text-foreground flex items-center gap-4 px-2.5"
           >
             <Users2 className="h-5 w-5" />
             Customers
           </Link>
           <Link
-            href="#"
+            href="/admin/analytics"
             className="text-muted-foreground hover:text-foreground flex items-center gap-4 px-2.5"
           >
             <LineChart className="h-5 w-5" />
-            Settings
+            Analytics
           </Link>
         </nav>
       </SheetContent>
