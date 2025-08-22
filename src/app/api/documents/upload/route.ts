@@ -26,34 +26,49 @@ export async function POST(req: NextRequest) {
 
     // Validate file type
     const allowedTypes = [
+      // Documents
       'application/pdf',
       'application/msword',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       'text/plain',
       'text/markdown',
+      // Images
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/webp',
+      'image/gif',
+      'image/bmp',
+      'image/tiff',
     ];
 
     if (!allowedTypes.includes(file.type)) {
       return new NextResponse('File type not supported', { status: 400 });
     }
 
-    // Validate file size (10MB max)
-    const maxSize = 10 * 1024 * 1024;
+    // Validate file size (different limits for different types)
+    const isImage = file.type.startsWith('image/');
+    const maxSize = isImage ? 25 * 1024 * 1024 : 50 * 1024 * 1024; // 25MB for images, 50MB for documents
     if (file.size > maxSize) {
-      return new NextResponse('File too large', { status: 400 });
+      const sizeLimitMB = isImage ? 25 : 50;
+      return new NextResponse(
+        `File too large. Maximum size: ${sizeLimitMB}MB`,
+        { status: 400 }
+      );
     }
 
     const supabase = await createServerSupabaseClient();
     const documentId = nanoid();
     const timestamp = Date.now();
 
-    // Create unique file path
-    const fileExtension = fileName.split('.').pop() || 'txt';
-    const storagePath = `documents/${user.id}/${documentId}_${timestamp}.${fileExtension}`;
+    // Create unique file path based on file type
+    const fileExtension = file.name.split('.').pop() || 'txt';
+    const fileCategory = isImage ? 'images' : 'documents';
+    const storagePath = `${fileCategory}/${user.id}/${documentId}_${timestamp}.${fileExtension}`;
 
-    // Upload to Supabase Storage
+    // Upload to Supabase Storage (using userfiles bucket for compatibility)
     const { error: uploadError } = await supabase.storage
-      .from('documents')
+      .from('userfiles')
       .upload(storagePath, file, {
         cacheControl: '3600',
         upsert: false,
@@ -66,18 +81,23 @@ export async function POST(req: NextRequest) {
 
     // Get public URL
     const { data: urlData } = supabase.storage
-      .from('documents')
+      .from('userfiles')
       .getPublicUrl(storagePath);
 
     // Create document record in database
+    const displayName = fileName || file.name;
     const { error: dbError } = await supabase
       .from('user_documents')
       .insert({
         id: documentId,
         user_id: user.id,
-        title: fileName,
-        filter_tags: `${fileName}_${timestamp}`,
-        total_pages: 0, // Will be updated during processing
+        title: displayName,
+        file_type: isImage ? 'image' : 'document',
+        content_type: file.type,
+        file_size: file.size,
+        file_url: urlData.publicUrl,
+        filter_tags: `${displayName}_${timestamp}`,
+        total_pages: isImage ? 1 : 0, // Images count as 1 page, documents will be updated during processing
       })
       .select()
       .single();
@@ -85,7 +105,7 @@ export async function POST(req: NextRequest) {
     if (dbError) {
       console.error('Database insert error:', dbError);
       // Clean up uploaded file
-      await supabase.storage.from('documents').remove([storagePath]);
+      await supabase.storage.from('userfiles').remove([storagePath]);
       return new NextResponse('Database error', { status: 500 });
     }
 
@@ -93,9 +113,12 @@ export async function POST(req: NextRequest) {
       success: true,
       documentId,
       url: urlData.publicUrl,
-      fileName,
+      fileName: displayName,
+      fileType: isImage ? 'image' : 'document',
+      contentType: file.type,
+      fileSize: file.size,
       storagePath,
-      message: 'File uploaded successfully',
+      message: `${isImage ? 'Image' : 'Document'} uploaded successfully`,
     });
   } catch (error) {
     console.error('Upload API error:', error);

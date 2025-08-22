@@ -10,6 +10,27 @@ This framework implements a simplified two-database architecture for optimal per
 - **PostgreSQL + pgvector**: Business data, domain content, vector embeddings, semantic search, RAG operations
 - **Redis**: Enhanced caching layer for all databases
 
+## Prerequisites
+
+Before setting up fest-vibes-ai, ensure you have the following services ready:
+
+### Required Services
+
+1. **Supabase Account** - [Create account](https://supabase.com/dashboard)
+   - For user authentication, profiles, and session management
+2. **Stripe Account** - [Create account](https://dashboard.stripe.com/register)
+   - For payment processing and subscription management
+3. **NeonDB Database** - PostgreSQL with pgvector extension
+   - For business data, content, and vector embeddings
+   - Serverless PostgreSQL optimized for modern applications
+   - Sign up at [neon.tech](https://neon.tech)
+4. **Redis Instance** - [Upstash Redis](https://upstash.com/redis) or self-hosted
+   - For caching and session storage
+
+### Required Environment Variables
+
+You'll need to obtain API keys and connection strings from each service above.
+
 ## Quick Start
 
 1. **Clone and install dependencies:**
@@ -19,16 +40,30 @@ cd ai-saas-framework
 pnpm install
 ```
 
-2. **Set up environment variables:**
+2. **Run the interactive setup:**
+
+```bash
+pnpm create-new
+```
+
+This will guide you through configuring your application metadata, branding, and other settings. The setup creates an `app.config.json` file that controls:
+
+- Project metadata (title, description, version)
+- SEO settings (keywords, Open Graph, Twitter cards)
+- Brand configuration (logos, contact info, social media)
+- Feature flags (analytics, dark mode, etc.)
+- Environment-specific URLs
+
+3. **Set up environment variables:**
 
 ```bash
 cp .env.example .env.local
-# Fill in all required environment variables
+# Fill in all required environment variables from the services above
 ```
 
-3. **Set up databases (see Database Setup section below)**
+4. **Set up databases (see Database Setup section below)**
 
-4. **Run the development server:**
+5. **Run the development server:**
 
 ```bash
 pnpm dev
@@ -78,18 +113,27 @@ CREATE POLICY "Users can update own profile" ON profiles
   FOR UPDATE USING (auth.uid() = id);
 ```
 
-### 2. PostgreSQL + pgvector Setup (Business + Vector Database)
+### 2. NeonDB Setup (Business + Vector Database)
 
-1. **Option A: Supabase (Recommended - use your existing project or create a new one)**
-   - Use your existing Supabase project or create a dedicated one for PostgreSQL
-   - Enable the pgvector extension in SQL Editor:
+1. **Create a NeonDB Project:**
+   - Go to [neon.tech](https://neon.tech) and sign up
+   - Create a new project with PostgreSQL 15+
+   - Choose a region close to your users
+
+2. **Enable Required Extensions:**
+   - In the NeonDB SQL Editor, run:
 
    ```sql
    CREATE EXTENSION IF NOT EXISTS vector;
    CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
    ```
 
-2. **Option B: Local PostgreSQL with pgvector**
+3. **Get Your Connection String:**
+   - Go to your project dashboard
+   - Copy the connection string from the "Connection Details" section
+   - It should look like: `postgresql://username:password@hostname/database?sslmode=require`
+
+4. **Alternative: Local PostgreSQL with pgvector (for development)**
 
    ```bash
    # Install PostgreSQL
@@ -114,13 +158,14 @@ CREATE POLICY "Users can update own profile" ON profiles
    CREATE EXTENSION "uuid-ossp";
    ```
 
-3. **Configure environment variables:**
+5. **Configure environment variables:**
 
 ```env
-POSTGRES_URL=postgresql://username:password@localhost:5432/ai_saas_framework
-POSTGRES_DIRECT_URL=postgresql://username:password@localhost:5432/ai_saas_framework
-# Legacy compatibility (can be same as POSTGRES_URL)
-VECTOR_DATABASE_URL=postgresql://username:password@localhost:5432/ai_saas_framework
+# Use your NeonDB connection string
+POSTGRES_URL=postgresql://username:password@hostname/database?sslmode=require
+POSTGRES_DIRECT_URL=postgresql://username:password@hostname/database?sslmode=require
+# For compatibility with existing database queries
+DATABASE_URL=postgresql://username:password@hostname/database?sslmode=require
 ```
 
 ### 3. Redis Setup (Caching Layer)
@@ -152,13 +197,86 @@ REDIS_URL=rediss://username:password@endpoint:port
 
 ## Third-Party Service Configuration
 
-### Anthropic (Claude AI)
+## Available AI Models
+
+The framework supports 12 AI models across 4 providers, plus embedding models for RAG functionality.
+
+### OpenAI Models
+
+- **GPT-4o**: Advanced multimodal model with vision and reasoning capabilities
+- **GPT-4o Mini**: Faster, cost-effective version of GPT-4o with vision support
+- **o1-preview**: Advanced reasoning model (preview) - specialized for complex problem-solving
+- **o1-mini**: Faster reasoning model with enhanced analytical capabilities
+
+### Anthropic Models
+
+- **Claude 3.5 Sonnet**: Most capable Claude model with enhanced reasoning and vision
+- **Claude 3.5 Haiku**: Fast and efficient Claude model with vision support
+
+### Google Models
+
+- **Gemini 2.0 Flash**: Fast multimodal model with enhanced capabilities and reasoning
+- **Gemini 1.5 Flash**: Balanced speed and capability with vision support
+- **Gemini 1.5 Pro**: Most capable Gemini model with extended context window
+
+### Perplexity Models
+
+- **Llama 3.1 Sonar Large (Online)**: Large model with real-time web search capabilities
+- **Llama 3.1 Sonar Small (Online)**: Efficient model with real-time web search
+
+### Embedding Models (for RAG)
+
+- **OpenAI text-embedding-ada-002**: Used for vector embeddings and semantic search
+
+### User Access Tiers
+
+Model access varies by subscription tier:
+
+- **Guest**: Claude 3.5 Haiku only (10 messages/day, no file uploads)
+- **Free**: Claude 3.5 Haiku + Sonnet (50 messages/day, file uploads allowed)
+- **Pro**: All Claude models (500 messages/day, RAG enabled, 50MB files)
+- **Enterprise**: All Claude models (unlimited usage, RAG enabled, 100MB files)
+
+_Note: OpenAI, Google, and Perplexity models are configured but require additional entitlement updates to be available per tier._
+
+### Required API Keys
+
+To use specific model providers, obtain API keys from:
+
+#### Anthropic (Claude AI)
 
 1. **Get API key:** https://console.anthropic.com/
 2. **Configure environment:**
 
 ```env
 ANTHROPIC_API_KEY=sk-ant-your-api-key
+```
+
+#### OpenAI
+
+1. **Get API key:** https://platform.openai.com/api-keys
+2. **Configure environment:**
+
+```env
+OPENAI_API_KEY=sk-your-openai-api-key
+```
+
+#### Google AI
+
+1. **Get API key:** https://aistudio.google.com/app/apikey
+2. **Configure environment:**
+
+```env
+GOOGLE_GENERATIVE_AI_API_KEY=your-google-api-key
+```
+
+#### Perplexity
+
+1. **Get API key:** https://www.perplexity.ai/settings/api
+2. **Configure environment:**
+
+```env
+PERPLEXITY_API_KEY=your-perplexity-api-key
 ```
 
 ### Stripe (Payments)
@@ -194,6 +312,65 @@ Generate a secret:
 ```bash
 openssl rand -base64 32
 ```
+
+## Configuration System
+
+fest-vibes-ai uses a dynamic configuration system that allows you to customize your application without code changes.
+
+### Configuration File Structure
+
+The `app.config.json` file (created by running `pnpm create-new`) contains:
+
+```json
+{
+  "project": {
+    "name": "your-app-name",
+    "version": "1.0.0",
+    "description": "Your app description",
+    "supabaseName": "your-supabase-app-name"
+  },
+  "metadata": {
+    "title": "Your App Title",
+    "description": "SEO description",
+    "keywords": ["keyword1", "keyword2"],
+    "themeColor": "#2acf80"
+  },
+  "brand": {
+    "name": "Your Brand",
+    "contact": {
+      "email": "hello@yourapp.com"
+    },
+    "social": {
+      "twitter": "https://twitter.com/yourapp"
+    }
+  },
+  "features": {
+    "analytics": true,
+    "darkMode": true,
+    "multiLanguage": false
+  }
+}
+```
+
+### Dynamic Metadata
+
+The configuration automatically generates:
+
+- Next.js metadata for SEO
+- Open Graph tags for social sharing
+- Twitter Card meta tags
+- Web app manifest
+- Favicon and icon configurations
+
+### Reconfiguring Your App
+
+To update your configuration:
+
+```bash
+pnpm create-new
+```
+
+Or manually edit `app.config.json` and restart your development server.
 
 ## Development Workflow
 

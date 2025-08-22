@@ -2,9 +2,9 @@ import React from 'react';
 
 import { getSession } from '@/lib/server/supabase';
 
-import Content from '../Content';
-import ModalWrapper from './ModalWrapper';
-import SignUpCard from './SignUpCard';
+import Content from '../../(auth)/Content';
+import SignUpCard from '../../(auth)/signup/SignUpCard';
+import ModalWrapper from '../ModalWrapper';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,7 +16,7 @@ export default async function SignUpModal() {
   }
 
   return (
-    <ModalWrapper>
+    <ModalWrapper title="Sign up">
       <div className="flex w-full flex-col items-center justify-center gap-2 md:flex-row">
         {/* Left side (Content) - Order changes on mobile */}
         <div className="order-2 flex w-full items-center justify-center rounded-md pb-8 sm:pb-4 md:order-1 md:w-[45.8%] md:pb-0">

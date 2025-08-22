@@ -1,7 +1,10 @@
 import { and, desc, eq } from 'drizzle-orm';
 
+import { getSession } from '@/lib/server/supabase';
+
 import { db } from './postgres';
 import {
+  type ActivityLog,
   type InsertChat,
   type InsertContentItem,
   type InsertMessage,
@@ -9,10 +12,18 @@ import {
   type SelectChat,
   type SelectContentItem,
   type SelectMessage,
+  type SelectUser,
   type SelectVote,
+  type Team,
+  type TeamDataWithMembers,
+  type TeamMember,
+  activityLogs,
   chats,
   contentItems,
   messages,
+  teamMembers,
+  teams,
+  users,
   votes,
 } from './schema';
 
@@ -338,3 +349,190 @@ export const getUserStats = async (userId: string) => {
     contentItems: contentCount?.count || 0,
   };
 };
+
+// =============================================================================
+// TEAM/USER QUERIES (from temp-saas-starter)
+// =============================================================================
+
+export async function getUser(): Promise<SelectUser | null> {
+  const session = await getSession();
+  if (!session?.user?.id) {
+    return null;
+  }
+
+  const result = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, session.user.id))
+    .limit(1);
+
+  return result[0] || null;
+}
+
+export async function getTeamByStripeCustomerId(
+  customerId: string
+): Promise<Team | null> {
+  const result = await db
+    .select()
+    .from(teams)
+    .where(eq(teams.stripeCustomerId, customerId))
+    .limit(1);
+
+  return result[0] || null;
+}
+
+export async function updateTeamSubscription(
+  teamId: string,
+  subscriptionData: {
+    stripeSubscriptionId: string | null;
+    stripeProductId: string | null;
+    planName: string | null;
+    subscriptionStatus: string;
+  }
+): Promise<void> {
+  await db
+    .update(teams)
+    .set({
+      ...subscriptionData,
+      updatedAt: new Date(),
+    })
+    .where(eq(teams.id, teamId));
+}
+
+export async function getUserWithTeam(userId: string) {
+  const result = await db
+    .select({
+      user: users,
+      teamId: teamMembers.teamId,
+    })
+    .from(users)
+    .leftJoin(teamMembers, eq(users.id, teamMembers.userId))
+    .where(eq(users.id, userId))
+    .limit(1);
+
+  return result[0];
+}
+
+export async function getActivityLogs(): Promise<ActivityLog[]> {
+  const user = await getUser();
+  if (!user) {
+    throw new Error('User not authenticated');
+  }
+
+  return await db
+    .select({
+      id: activityLogs.id,
+      teamId: activityLogs.teamId,
+      userId: activityLogs.userId,
+      action: activityLogs.action,
+      timestamp: activityLogs.timestamp,
+      ipAddress: activityLogs.ipAddress,
+      metadata: activityLogs.metadata,
+    })
+    .from(activityLogs)
+    .leftJoin(users, eq(activityLogs.userId, users.id))
+    .where(eq(activityLogs.userId, user.id))
+    .orderBy(desc(activityLogs.timestamp))
+    .limit(10);
+}
+
+export async function getTeamForUser(): Promise<TeamDataWithMembers | null> {
+  const user = await getUser();
+  if (!user) {
+    return null;
+  }
+
+  const result = await db.query.teamMembers.findFirst({
+    where: eq(teamMembers.userId, user.id),
+    with: {
+      team: {
+        with: {
+          teamMembers: {
+            with: {
+              user: {
+                columns: {
+                  id: true,
+                  email: true,
+                  fullName: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  return result?.team || null;
+}
+
+export async function createTeam(name: string, userId: string): Promise<Team> {
+  // Create team
+  const teamResult = await db
+    .insert(teams)
+    .values({
+      name,
+    })
+    .returning();
+
+  const team = teamResult[0];
+
+  // Add user as team owner
+  await db.insert(teamMembers).values({
+    userId,
+    teamId: team.id,
+    role: 'owner',
+  });
+
+  return team;
+}
+
+export async function addTeamMember(
+  teamId: string,
+  userId: string,
+  role: string = 'member'
+): Promise<TeamMember> {
+  const result = await db
+    .insert(teamMembers)
+    .values({
+      teamId,
+      userId,
+      role,
+    })
+    .returning();
+
+  return result[0];
+}
+
+export async function removeTeamMember(
+  teamId: string,
+  userId: string
+): Promise<boolean> {
+  const result = await db
+    .delete(teamMembers)
+    .where(and(eq(teamMembers.teamId, teamId), eq(teamMembers.userId, userId)))
+    .returning();
+
+  return result.length > 0;
+}
+
+export async function logActivity(
+  teamId: string,
+  userId: string | null,
+  action: string,
+  ipAddress?: string,
+  metadata?: Record<string, unknown>
+): Promise<ActivityLog> {
+  const result = await db
+    .insert(activityLogs)
+    .values({
+      teamId,
+      userId,
+      action,
+      ipAddress,
+      metadata,
+    })
+    .returning();
+
+  return result[0];
+}

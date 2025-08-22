@@ -9,16 +9,17 @@ import { Children } from 'react';
 
 import type { ChatStatus } from 'ai';
 import { Loader2Icon, SendIcon, SquareIcon, XIcon } from 'lucide-react';
-import { Button } from 'src/components/ui/button';
+
+import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from 'src/components/ui/select';
-import { Textarea } from 'src/components/ui/textarea';
-import { cn } from 'src/lib/utils';
+} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
 
 export type PromptInputProps = HTMLAttributes<HTMLFormElement>;
 
@@ -41,8 +42,6 @@ export const PromptInputTextarea = ({
   onChange,
   className,
   placeholder = 'What would you like to know?',
-  minHeight = 48,
-  maxHeight = 164,
   ...props
 }: PromptInputTextareaProps) => {
   const handleKeyDown: KeyboardEventHandler<HTMLTextAreaElement> = (e) => {

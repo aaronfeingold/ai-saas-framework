@@ -1,10 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Upload, X } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -21,6 +23,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import {
   Select,
   SelectContent,
@@ -201,10 +204,11 @@ function renderFieldControl(
 
     case 'rich_text':
       return (
-        <Textarea
+        <RichTextEditor
+          value={formField.value as string}
+          onChange={formField.onChange}
           placeholder={`Enter ${field.label.toLowerCase()}`}
-          className="min-h-[200px]"
-          {...formField}
+          minHeight={200}
         />
       );
 
@@ -302,20 +306,7 @@ function renderFieldControl(
 
     case 'file':
     case 'image':
-      return (
-        <Input
-          type="file"
-          accept={field.type === 'image' ? 'image/*' : undefined}
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) {
-              // For now, just store the file name
-              // In a real implementation, you'd upload to storage
-              formField.onChange(file.name);
-            }
-          }}
-        />
-      );
+      return <FileUploadField field={field} formField={formField} />;
 
     case 'json':
       return (
@@ -333,6 +324,9 @@ function renderFieldControl(
           }}
         />
       );
+
+    case 'relation':
+      return <RelationField field={field} formField={formField} />;
 
     default:
       return (
@@ -407,6 +401,19 @@ function createDynamicSchema(fields: FieldDefinition[]) {
         fieldSchema = z.unknown();
         break;
 
+      case 'relation':
+        if (field.validation.relation_multiple) {
+          fieldSchema = z.array(z.string().uuid());
+        } else {
+          fieldSchema = z.string().uuid();
+        }
+        break;
+
+      case 'file':
+      case 'image':
+        fieldSchema = z.string().url().or(z.string().min(1));
+        break;
+
       default:
         fieldSchema = z.string();
     }
@@ -454,4 +461,260 @@ function getDefaultValues(
   });
 
   return defaults;
+}
+
+// RelationField component for handling content relationships
+function RelationField({
+  field,
+  formField,
+}: {
+  field: FieldDefinition;
+  formField: {
+    value: unknown;
+    onChange: (value: unknown) => void;
+  };
+}) {
+  const [options, setOptions] = useState<{ id: string; label: string }[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (field.validation.relation_to) {
+      fetchRelationOptions(field.validation.relation_to);
+    }
+  }, [field.validation.relation_to]);
+
+  const fetchRelationOptions = async (contentTypeSlug: string) => {
+    try {
+      setLoading(true);
+      const response = await fetch(`/api/content/${contentTypeSlug}`);
+      if (response.ok) {
+        const data = await response.json();
+        const mappedOptions =
+          data.data?.map(
+            (item: {
+              id: string;
+              data?: { title?: string; name?: string };
+            }) => ({
+              id: item.id,
+              label: item.data?.title || item.data?.name || item.id,
+            })
+          ) || [];
+        setOptions(mappedOptions);
+      }
+    } catch (error) {
+      console.error('Error fetching relation options:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="text-muted-foreground text-sm">Loading options...</div>
+    );
+  }
+
+  if (field.validation.relation_multiple) {
+    // Multiple selection
+    const selectedIds = Array.isArray(formField.value) ? formField.value : [];
+
+    return (
+      <div className="space-y-2">
+        <Select
+          onValueChange={(value) => {
+            if (!selectedIds.includes(value)) {
+              formField.onChange([...selectedIds, value]);
+            }
+          }}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder={`Select ${field.label.toLowerCase()}`} />
+          </SelectTrigger>
+          <SelectContent>
+            {options
+              .filter((option) => !selectedIds.includes(option.id))
+              .map((option) => (
+                <SelectItem key={option.id} value={option.id}>
+                  {option.label}
+                </SelectItem>
+              ))}
+          </SelectContent>
+        </Select>
+
+        {selectedIds.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {selectedIds.map((id: string) => {
+              const option = options.find((opt) => opt.id === id);
+              return (
+                <div
+                  key={id}
+                  className="bg-muted flex items-center gap-1 rounded-md px-2 py-1 text-sm"
+                >
+                  {option?.label || id}
+                  <X
+                    className="h-3 w-3 cursor-pointer"
+                    onClick={() => {
+                      formField.onChange(
+                        selectedIds.filter(
+                          (selectedId: string) => selectedId !== id
+                        )
+                      );
+                    }}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  } else {
+    // Single selection
+    return (
+      <Select
+        onValueChange={formField.onChange}
+        defaultValue={formField.value as string}
+      >
+        <SelectTrigger>
+          <SelectValue placeholder={`Select ${field.label.toLowerCase()}`} />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((option) => (
+            <SelectItem key={option.id} value={option.id}>
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    );
+  }
+}
+
+// Enhanced file upload component
+function FileUploadField({
+  field,
+  formField,
+}: {
+  field: FieldDefinition;
+  formField: {
+    value: unknown;
+    onChange: (value: unknown) => void;
+  };
+}) {
+  const [uploading, setUploading] = useState(false);
+  const [preview, setPreview] = useState<string | null>(null);
+
+  const handleFileUpload = async (file: File) => {
+    setUploading(true);
+    try {
+      // Create a FormData object for file upload
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('fieldType', field.type);
+
+      const response = await fetch('/api/documents/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        formField.onChange(result.url || result.filename);
+
+        // Set preview for images
+        if (field.type === 'image' && file.type.startsWith('image/')) {
+          const reader = new FileReader();
+          reader.onload = (e) => setPreview(e.target?.result as string);
+          reader.readAsDataURL(file);
+        }
+      } else {
+        throw new Error('Upload failed');
+      }
+    } catch (error) {
+      console.error('File upload error:', error);
+      toast.error('Failed to upload file');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="flex w-full items-center justify-center">
+        <label className="flex h-32 w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 hover:bg-gray-100">
+          <div className="flex flex-col items-center justify-center pt-5 pb-6">
+            <Upload className="mb-4 h-8 w-8 text-gray-500" />
+            <p className="mb-2 text-sm text-gray-500">
+              <span className="font-semibold">Click to upload</span> or drag and
+              drop
+            </p>
+            {field.validation.file_types && (
+              <p className="text-xs text-gray-500">
+                {field.validation.file_types.join(', ').toUpperCase()}
+              </p>
+            )}
+          </div>
+          <input
+            type="file"
+            className="hidden"
+            accept={
+              field.type === 'image'
+                ? 'image/*'
+                : field.validation.file_types
+                    ?.map((type) => `.${type}`)
+                    .join(',')
+            }
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                // Validate file size
+                if (
+                  field.validation.max_file_size &&
+                  file.size > field.validation.max_file_size * 1024 * 1024
+                ) {
+                  toast.error(
+                    `File size must be less than ${field.validation.max_file_size}MB`
+                  );
+                  return;
+                }
+                handleFileUpload(file);
+              }
+            }}
+            disabled={uploading}
+          />
+        </label>
+      </div>
+
+      {uploading && (
+        <div className="text-muted-foreground text-sm">Uploading...</div>
+      )}
+
+      {formField.value && (
+        <div className="bg-muted flex items-center gap-2 rounded p-2">
+          <span className="flex-1 truncate text-sm">
+            {formField.value as string}
+          </span>
+          <X
+            className="h-4 w-4 cursor-pointer"
+            onClick={() => {
+              formField.onChange('');
+              setPreview(null);
+            }}
+          />
+        </div>
+      )}
+
+      {preview && field.type === 'image' && (
+        <div className="mt-2">
+          <Image
+            src={preview}
+            alt="Preview"
+            width={128}
+            height={128}
+            className="max-h-32 max-w-32 rounded object-cover"
+          />
+        </div>
+      )}
+    </div>
+  );
 }

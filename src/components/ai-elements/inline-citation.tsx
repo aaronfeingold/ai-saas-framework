@@ -4,19 +4,20 @@ import * as React from 'react';
 import type { ComponentProps } from 'react';
 
 import { ArrowLeftIcon, ArrowRightIcon } from 'lucide-react';
-import { Badge } from 'src/components/ui/badge';
+
+import { Badge } from '@/components/ui/badge';
 import {
   Carousel,
   CarouselContent,
   CarouselItem,
   useCarousel,
-} from 'src/components/ui/carousel';
+} from '@/components/ui/carousel';
 import {
   HoverCard,
   HoverCardContent,
   HoverCardTrigger,
-} from 'src/components/ui/hover-card';
-import { cn } from 'src/lib/utils';
+} from '@/components/ui/hover-card';
+import { cn } from '@/lib/utils';
 
 export type InlineCitationProps = ComponentProps<'span'>;
 

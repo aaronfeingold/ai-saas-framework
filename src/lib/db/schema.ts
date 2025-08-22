@@ -20,6 +20,117 @@ import { z } from 'zod';
 // =============================================================================
 
 // =============================================================================
+// TEAM & SUBSCRIPTION MANAGEMENT (from temp-saas-starter)
+// =============================================================================
+
+// Teams table for multi-tenant SaaS with Stripe integration
+export const teams = pgTable(
+  'teams',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    name: text('name').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    stripeCustomerId: text('stripe_customer_id'),
+    stripeSubscriptionId: text('stripe_subscription_id'),
+    stripeProductId: text('stripe_product_id'),
+    planName: text('plan_name'),
+    subscriptionStatus: text('subscription_status'),
+  },
+  (table) => ({
+    stripeCustomerIdx: uniqueIndex('idx_teams_stripe_customer').on(
+      table.stripeCustomerId
+    ),
+    stripeSubscriptionIdx: uniqueIndex('idx_teams_stripe_subscription').on(
+      table.stripeSubscriptionId
+    ),
+  })
+);
+
+// Team members for role-based access control
+export const teamMembers = pgTable(
+  'team_members',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    teamId: uuid('team_id')
+      .notNull()
+      .references(() => teams.id, { onDelete: 'cascade' }),
+    role: text('role').notNull().default('member'), // 'owner', 'admin', 'member'
+    joinedAt: timestamp('joined_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    userTeamIdx: uniqueIndex('idx_team_members_user_team').on(
+      table.userId,
+      table.teamId
+    ),
+    teamIdx: index('idx_team_members_team').on(table.teamId),
+    userIdx: index('idx_team_members_user').on(table.userId),
+  })
+);
+
+// Activity logs for audit trails
+export const activityLogs = pgTable(
+  'activity_logs',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    teamId: uuid('team_id')
+      .notNull()
+      .references(() => teams.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    action: text('action').notNull(),
+    timestamp: timestamp('timestamp', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    ipAddress: text('ip_address'),
+    metadata: jsonb('metadata'),
+  },
+  (table) => ({
+    teamIdx: index('idx_activity_logs_team').on(table.teamId),
+    timestampIdx: index('idx_activity_logs_timestamp').on(table.timestamp),
+    actionIdx: index('idx_activity_logs_action').on(table.action),
+  })
+);
+
+// Team invitations
+export const invitations = pgTable(
+  'invitations',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    teamId: uuid('team_id')
+      .notNull()
+      .references(() => teams.id, { onDelete: 'cascade' }),
+    email: text('email').notNull(),
+    role: text('role').notNull().default('member'),
+    invitedBy: uuid('invited_by')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    invitedAt: timestamp('invited_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    status: text('status').notNull().default('pending'), // 'pending', 'accepted', 'declined'
+    token: text('token').notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }),
+  },
+  (table) => ({
+    emailIdx: index('idx_invitations_email').on(table.email),
+    teamIdx: index('idx_invitations_team').on(table.teamId),
+    tokenIdx: uniqueIndex('idx_invitations_token').on(table.token),
+    statusIdx: index('idx_invitations_status').on(table.status),
+  })
+);
+
+// =============================================================================
 // ENHANCED CHAT SYSTEM (from temp-supabase-auth)
 // =============================================================================
 
@@ -30,6 +141,17 @@ export const users = pgTable(
     id: uuid('id').primaryKey(), // This matches Supabase auth.users.id
     email: text('email').notNull(),
     fullName: text('full_name').notNull(),
+    displayName: text('display_name'), // Public display name
+    bio: text('bio'), // User bio/description
+    avatarUrl: text('avatar_url'), // Profile picture URL
+    timezone: text('timezone').default('UTC'), // User timezone
+    preferences: jsonb('preferences').default('{}'), // User preferences (theme, notifications, etc.)
+    lastSeenAt: timestamp('last_seen_at', { withTimezone: true }), // Last activity timestamp
+    emailVerified: boolean('email_verified').default(false), // Email verification status
+    twoFactorEnabled: boolean('two_factor_enabled').default(false), // 2FA status
+    profileCompletedAt: timestamp('profile_completed_at', {
+      withTimezone: true,
+    }), // Profile completion timestamp
     createdAt: timestamp('created_at', { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -39,6 +161,8 @@ export const users = pgTable(
   },
   (table) => ({
     emailIdx: index('idx_users_email').on(table.email),
+    displayNameIdx: index('idx_users_display_name').on(table.displayName),
+    lastSeenIdx: index('idx_users_last_seen').on(table.lastSeenAt),
   })
 );
 
@@ -97,7 +221,7 @@ export const chatMessages = pgTable(
   })
 );
 
-// Document storage and management
+// Document storage and management (enhanced for universal file support)
 export const userDocuments = pgTable(
   'user_documents',
   {
@@ -106,12 +230,28 @@ export const userDocuments = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
     title: text('title').notNull(),
+
+    // File type classification
+    fileType: text('file_type').notNull().default('document'), // 'document', 'image', 'video', 'audio'
+    contentType: text('content_type'), // MIME type
+    fileSize: integer('file_size'), // File size in bytes
+    fileUrl: text('file_url'), // Public URL to the file
+
+    // Processing metadata
+    processingStatus: text('processing_status').default('pending'), // 'pending', 'processing', 'completed', 'failed'
+    processedAt: timestamp('processed_at', { withTimezone: true }),
+
+    // Content analysis
+    extractedText: text('extracted_text'), // OCR text from images or extracted text from PDFs
+
+    // Existing fields (from temp-supabase-auth compatibility)
     filterTags: text('filter_tags').notNull(),
     totalPages: integer('total_pages').notNull(),
     aiTitle: text('ai_title'),
     aiDescription: text('ai_description'),
     aiMainTopics: text('ai_maintopics').array(),
     aiKeyEntities: text('ai_keyentities').array(),
+
     createdAt: timestamp('created_at', { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -119,6 +259,10 @@ export const userDocuments = pgTable(
   (table) => ({
     userIdIdx: index('idx_user_documents_user_id').on(table.userId),
     titleIdx: index('idx_user_documents_title').on(table.title),
+    fileTypeIdx: index('idx_user_documents_file_type').on(table.fileType),
+    processingStatusIdx: index('idx_user_documents_processing_status').on(
+      table.processingStatus
+    ),
     createdAtIdx: index('idx_user_documents_created_at').on(
       table.createdAt.desc()
     ),
@@ -401,10 +545,55 @@ export const embeddings = pgTable(
 // RELATIONS
 // =============================================================================
 
+// Team System Relations
+export const teamsRelations = relations(teams, ({ many }) => ({
+  teamMembers: many(teamMembers),
+  activityLogs: many(activityLogs),
+  invitations: many(invitations),
+}));
+
+export const teamMembersRelations = relations(teamMembers, ({ one }) => ({
+  user: one(users, {
+    fields: [teamMembers.userId],
+    references: [users.id],
+  }),
+  team: one(teams, {
+    fields: [teamMembers.teamId],
+    references: [teams.id],
+  }),
+}));
+
+export const activityLogsRelations = relations(activityLogs, ({ one }) => ({
+  team: one(teams, {
+    fields: [activityLogs.teamId],
+    references: [teams.id],
+  }),
+  user: one(users, {
+    fields: [activityLogs.userId],
+    references: [users.id],
+  }),
+}));
+
+export const invitationsRelations = relations(invitations, ({ one }) => ({
+  team: one(teams, {
+    fields: [invitations.teamId],
+    references: [teams.id],
+  }),
+  invitedBy: one(users, {
+    fields: [invitations.invitedBy],
+    references: [users.id],
+  }),
+}));
+
 // Enhanced Chat System Relations
 export const usersRelations = relations(users, ({ many }) => ({
   chatSessions: many(chatSessions),
   userDocuments: many(userDocuments),
+  teamMembers: many(teamMembers),
+  activityLogs: many(activityLogs),
+  invitationsSent: many(invitations),
+  userSessions: many(userSessions),
+  securityEvents: many(securityEvents),
 }));
 
 export const chatSessionsRelations = relations(
@@ -500,6 +689,22 @@ export const contentRelationshipsRelations = relations(
   })
 );
 
+// User Sessions Relations
+export const userSessionsRelations = relations(userSessions, ({ one }) => ({
+  user: one(users, {
+    fields: [userSessions.userId],
+    references: [users.id],
+  }),
+}));
+
+// Security Events Relations
+export const securityEventsRelations = relations(securityEvents, ({ one }) => ({
+  user: one(users, {
+    fields: [securityEvents.userId],
+    references: [users.id],
+  }),
+}));
+
 // =============================================================================
 // ZOD SCHEMAS (Generated from Drizzle tables)
 // =============================================================================
@@ -534,6 +739,27 @@ export const insertErrorFeedbackSchema = createInsertSchema(errorFeedback);
 export const selectErrorFeedbackSchema = createSelectSchema(errorFeedback);
 export type InsertErrorFeedback = z.infer<typeof insertErrorFeedbackSchema>;
 export type SelectErrorFeedback = z.infer<typeof selectErrorFeedbackSchema>;
+
+// Team System schemas
+export const insertTeamSchema = createInsertSchema(teams);
+export const selectTeamSchema = createSelectSchema(teams);
+export type InsertTeam = z.infer<typeof insertTeamSchema>;
+export type SelectTeam = z.infer<typeof selectTeamSchema>;
+
+export const insertTeamMemberSchema = createInsertSchema(teamMembers);
+export const selectTeamMemberSchema = createSelectSchema(teamMembers);
+export type InsertTeamMember = z.infer<typeof insertTeamMemberSchema>;
+export type SelectTeamMember = z.infer<typeof selectTeamMemberSchema>;
+
+export const insertActivityLogSchema = createInsertSchema(activityLogs);
+export const selectActivityLogSchema = createSelectSchema(activityLogs);
+export type InsertActivityLog = z.infer<typeof insertActivityLogSchema>;
+export type SelectActivityLog = z.infer<typeof selectActivityLogSchema>;
+
+export const insertInvitationSchema = createInsertSchema(invitations);
+export const selectInvitationSchema = createSelectSchema(invitations);
+export type InsertInvitation = z.infer<typeof insertInvitationSchema>;
+export type SelectInvitation = z.infer<typeof selectInvitationSchema>;
 
 // Legacy Chat schemas (keeping for backward compatibility)
 export const insertChatSchema = createInsertSchema(chats);
@@ -587,6 +813,18 @@ export type SelectContentRelationship = z.infer<
   typeof selectContentRelationshipSchema
 >;
 
+// User Sessions schemas
+export const insertUserSessionSchema = createInsertSchema(userSessions);
+export const selectUserSessionSchema = createSelectSchema(userSessions);
+export type InsertUserSession = z.infer<typeof insertUserSessionSchema>;
+export type SelectUserSession = z.infer<typeof selectUserSessionSchema>;
+
+// Security Events schemas
+export const insertSecurityEventSchema = createInsertSchema(securityEvents);
+export const selectSecurityEventSchema = createSelectSchema(securityEvents);
+export type InsertSecurityEvent = z.infer<typeof insertSecurityEventSchema>;
+export type SelectSecurityEvent = z.infer<typeof selectSecurityEventSchema>;
+
 // =============================================================================
 // LEGACY COMPATIBILITY TYPES (for existing code)
 // =============================================================================
@@ -630,6 +868,94 @@ export const subscriptionSchema = z.object({
 
 export type Subscription = z.infer<typeof subscriptionSchema>;
 
+// Team System exports
+export type Team = SelectTeam;
+export type TeamMember = SelectTeamMember;
+export type ActivityLog = SelectActivityLog;
+export type Invitation = SelectInvitation;
+
+// Team types with relations (matching temp-saas-starter)
+export type TeamDataWithMembers = Team & {
+  teamMembers: (TeamMember & {
+    user: Pick<SelectUser, 'id' | 'email' | 'fullName'>;
+  })[];
+};
+
+// Activity type enum (matching temp-saas-starter)
+export enum ActivityType {
+  SIGN_UP = 'SIGN_UP',
+  SIGN_IN = 'SIGN_IN',
+  SIGN_OUT = 'SIGN_OUT',
+  UPDATE_PASSWORD = 'UPDATE_PASSWORD',
+  DELETE_ACCOUNT = 'DELETE_ACCOUNT',
+  UPDATE_ACCOUNT = 'UPDATE_ACCOUNT',
+  CREATE_TEAM = 'CREATE_TEAM',
+  REMOVE_TEAM_MEMBER = 'REMOVE_TEAM_MEMBER',
+  INVITE_TEAM_MEMBER = 'INVITE_TEAM_MEMBER',
+  ACCEPT_INVITATION = 'ACCEPT_INVITATION',
+}
+
+// =============================================================================
+// USER SESSIONS & SECURITY
+// =============================================================================
+
+// User sessions for tracking active sessions and security events
+export const userSessions = pgTable(
+  'user_sessions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    sessionToken: text('session_token').notNull().unique(),
+    deviceInfo: text('device_info'), // User agent, device type
+    ipAddress: text('ip_address'),
+    location: text('location'), // City, country from IP
+    isActive: boolean('is_active').default(true),
+    lastActiveAt: timestamp('last_active_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    userIdx: index('idx_user_sessions_user').on(table.userId),
+    sessionTokenIdx: uniqueIndex('idx_user_sessions_token').on(
+      table.sessionToken
+    ),
+    activeIdx: index('idx_user_sessions_active').on(table.isActive),
+    expiresIdx: index('idx_user_sessions_expires').on(table.expiresAt),
+  })
+);
+
+// Security events log
+export const securityEvents = pgTable(
+  'security_events',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    eventType: text('event_type').notNull(), // 'login', 'logout', 'password_change', 'email_change', etc.
+    eventData: jsonb('event_data').default('{}'), // Additional event details
+    ipAddress: text('ip_address'),
+    userAgent: text('user_agent'),
+    success: boolean('success').default(true),
+    riskScore: integer('risk_score').default(0), // 0-100 risk assessment
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    userIdx: index('idx_security_events_user').on(table.userId),
+    eventTypeIdx: index('idx_security_events_type').on(table.eventType),
+    createdAtIdx: index('idx_security_events_created').on(table.createdAt),
+    riskScoreIdx: index('idx_security_events_risk').on(table.riskScore),
+  })
+);
+
 // Enhanced Chat System exports
 export type UserProfile = SelectUser;
 export type ChatSession = SelectChatSession;
@@ -637,6 +963,8 @@ export type ChatMessage = SelectChatMessage;
 export type UserDocument = SelectUserDocument;
 export type UserDocumentVec = SelectUserDocumentVec;
 export type ErrorFeedback = SelectErrorFeedback;
+export type UserSession = SelectUserSession;
+export type SecurityEvent = SelectSecurityEvent;
 
 // Legacy compatibility exports
 export type Chat = SelectChat;

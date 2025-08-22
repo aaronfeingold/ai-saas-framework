@@ -1,0 +1,88 @@
+{
+  "project": {
+    "name": "fest-vibes-ai",
+    "version": "1.0.0",
+    "description": "AI-powered festival and event management platform",
+    "domain": "fest-vibes-ai.com",
+    "supabaseName": "fest-vibes-ai"
+  },
+  "metadata": {
+    "title": "fest-vibes-ai",
+    "description": "AI-powered festival and event management platform",
+    "keywords": ["AI", "festival", "events", "management", "SaaS"],
+    "author": "fest-vibes-ai",
+    "openGraph": {
+      "type": "website",
+      "locale": "en_US",
+      "siteName": "fest-vibes-ai",
+      "images": [
+        {
+          "url": "/og-image.png",
+          "width": 1200,
+          "height": 630,
+          "alt": "fest-vibes-ai - AI-powered festival management"
+        }
+      ]
+    },
+    "twitter": {
+      "card": "summary_large_image",
+      "site": "@festvibesai",
+      "creator": "@festvibesai",
+      "images": ["/og-image.png"]
+    },
+    "manifest": "/manifest.json",
+    "themeColor": "#2acf80",
+    "backgroundColor": "#ffffff",
+    "icons": {
+      "icon": "/favicon.ico",
+      "apple": "/apple-touch-icon.png",
+      "other": [
+        {
+          "rel": "icon",
+          "url": "/favicon-16x16.png",
+          "sizes": "16x16",
+          "type": "image/png"
+        },
+        {
+          "rel": "icon",
+          "url": "/favicon-32x32.png",
+          "sizes": "32x32",
+          "type": "image/png"
+        }
+      ]
+    }
+  },
+  "brand": {
+    "name": "fest-vibes-ai",
+    "tagline": "Revolutionizing festival management with AI",
+    "logo": {
+      "light": "/logo-light.svg",
+      "dark": "/logo-dark.svg",
+      "favicon": "/favicon.ico"
+    },
+    "contact": {
+      "email": "hello@fest-vibes-ai.com",
+      "website": "https://fest-vibes-ai.com"
+    },
+    "social": {
+      "twitter": "https://twitter.com/festvibesai",
+      "linkedin": "https://linkedin.com/company/fest-vibes-ai",
+      "github": "https://github.com/fest-vibes-ai"
+    }
+  },
+  "environment": {
+    "production": {
+      "url": "https://fest-vibes-ai.com",
+      "apiUrl": "https://api.fest-vibes-ai.com"
+    },
+    "development": {
+      "url": "http://localhost:3000"
+    }
+  },
+  "features": {
+    "analytics": true,
+    "darkMode": true,
+    "multiLanguage": false,
+    "maintenance": false
+  }
+}

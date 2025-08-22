@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 
+import Image from 'next/image';
 import Link from 'next/link';
 
 import { format } from 'date-fns';
@@ -388,11 +389,59 @@ function ContentFieldDisplay({ value, field }: ContentFieldDisplayProps) {
       );
 
     case 'image':
+      return (
+        <div className="flex items-center gap-2">
+          <Image
+            src={String(value)}
+            alt="preview"
+            width={32}
+            height={32}
+            className="h-8 w-8 rounded object-cover"
+            onError={() => {}}
+          />
+          <span className="hidden text-blue-600">🖼️ Image</span>
+        </div>
+      );
+
     case 'file':
       return (
         <span className="cursor-pointer text-blue-600 hover:underline">
           📎 {String(value).split('/').pop()}
         </span>
+      );
+
+    case 'relation':
+      if (Array.isArray(value)) {
+        return (
+          <div className="flex flex-wrap gap-1">
+            {value.slice(0, 2).map((item, i) => (
+              <Badge key={i} variant="outline" className="text-xs">
+                {typeof item === 'object' && item?.label
+                  ? item.label
+                  : String(item)}
+              </Badge>
+            ))}
+            {value.length > 2 && (
+              <Badge variant="outline" className="text-xs">
+                +{value.length - 2}
+              </Badge>
+            )}
+          </div>
+        );
+      }
+      return (
+        <Badge variant="outline" className="text-xs">
+          {typeof value === 'object' && value?.label
+            ? value.label
+            : String(value)}
+        </Badge>
+      );
+
+    case 'json':
+      return (
+        <code className="bg-muted rounded px-1 py-0.5 text-xs">
+          {JSON.stringify(value).substring(0, 50)}...
+        </code>
       );
 
     default:

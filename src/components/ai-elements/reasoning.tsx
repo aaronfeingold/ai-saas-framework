@@ -5,12 +5,13 @@ import { createContext, memo, useContext, useEffect, useState } from 'react';
 
 import { useControllableState } from '@radix-ui/react-use-controllable-state';
 import { BrainIcon, ChevronDownIcon } from 'lucide-react';
+
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from 'src/components/ui/collapsible';
-import { cn } from 'src/lib/utils';
+} from '@/components/ui/collapsible';
+import { cn } from '@/lib/utils';
 
 import { Response } from './response';
 
@@ -117,12 +118,7 @@ export type ReasoningTriggerProps = ComponentProps<
 };
 
 export const ReasoningTrigger = memo(
-  ({
-    className,
-    title = 'Reasoning',
-    children,
-    ...props
-  }: ReasoningTriggerProps) => {
+  ({ className, children, ...props }: ReasoningTriggerProps) => {
     const { isStreaming, isOpen, duration } = useReasoning();
 
     return (
