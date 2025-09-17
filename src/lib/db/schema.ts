@@ -131,6 +131,134 @@ export const invitations = pgTable(
 );
 
 // =============================================================================
+// EMAIL SYSTEM TABLES
+// =============================================================================
+
+// Email templates for dynamic template management
+export const emailTemplates = pgTable(
+  'email_templates',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    name: text('name').notNull(), // template identifier (e.g., 'welcome', 'payment-confirmation')
+    displayName: text('display_name').notNull(), // human-readable name
+    description: text('description'),
+    category: text('category').notNull().default('transactional'), // 'transactional', 'marketing', 'system'
+    subject: text('subject').notNull(),
+    htmlContent: text('html_content').notNull(),
+    textContent: text('text_content'),
+    variables: jsonb('variables').default('[]'), // array of variable definitions
+    isActive: boolean('is_active').default(true),
+    isSystem: boolean('is_system').default(false), // cannot be deleted
+    version: integer('version').default(1),
+    createdBy: uuid('created_by').references(() => users.id),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    nameIdx: uniqueIndex('idx_email_templates_name').on(table.name),
+    categoryIdx: index('idx_email_templates_category').on(table.category),
+    activeIdx: index('idx_email_templates_active').on(table.isActive),
+    createdByIdx: index('idx_email_templates_created_by').on(table.createdBy),
+  })
+);
+
+// Email logs for tracking sent emails
+export const emailLogs = pgTable(
+  'email_logs',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    to: text('to').notNull(),
+    subject: text('subject').notNull(),
+    template: text('template').notNull(), // template name
+    variables: jsonb('variables'),
+    status: text('status').notNull().default('pending'), // 'pending', 'sent', 'delivered', 'bounced', 'failed'
+    resendId: text('resend_id'), // Resend message ID
+    error: text('error'),
+    sentAt: timestamp('sent_at', { withTimezone: true }),
+    deliveredAt: timestamp('delivered_at', { withTimezone: true }),
+    bouncedAt: timestamp('bounced_at', { withTimezone: true }),
+    openedAt: timestamp('opened_at', { withTimezone: true }),
+    clickedAt: timestamp('clicked_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    toIdx: index('idx_email_logs_to').on(table.to),
+    templateIdx: index('idx_email_logs_template').on(table.template),
+    statusIdx: index('idx_email_logs_status').on(table.status),
+    resendIdIdx: index('idx_email_logs_resend_id').on(table.resendId),
+    createdAtIdx: index('idx_email_logs_created_at').on(table.createdAt.desc()),
+    sentAtIdx: index('idx_email_logs_sent_at').on(table.sentAt),
+  })
+);
+
+// Email template versions for version control
+export const emailTemplateVersions = pgTable(
+  'email_template_versions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    templateId: uuid('template_id')
+      .notNull()
+      .references(() => emailTemplates.id, { onDelete: 'cascade' }),
+    version: integer('version').notNull(),
+    subject: text('subject').notNull(),
+    htmlContent: text('html_content').notNull(),
+    textContent: text('text_content'),
+    variables: jsonb('variables').default('[]'),
+    changeNote: text('change_note'),
+    createdBy: uuid('created_by').references(() => users.id),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    templateVersionIdx: uniqueIndex('idx_template_versions_template_version').on(
+      table.templateId,
+      table.version
+    ),
+    templateIdx: index('idx_template_versions_template').on(table.templateId),
+    createdByIdx: index('idx_template_versions_created_by').on(table.createdBy),
+    createdAtIdx: index('idx_template_versions_created_at').on(table.createdAt.desc()),
+  })
+);
+
+// User notification preferences
+export const userNotificationPreferences = pgTable(
+  'user_notification_preferences',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    emailEnabled: boolean('email_enabled').default(true),
+    marketingEmails: boolean('marketing_emails').default(false),
+    productUpdates: boolean('product_updates').default(true),
+    securityAlerts: boolean('security_alerts').default(true),
+    billingNotifications: boolean('billing_notifications').default(true),
+    unsubscribedFromAll: boolean('unsubscribed_from_all').default(false),
+    unsubscribeToken: text('unsubscribe_token').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    userIdx: uniqueIndex('idx_user_notification_preferences_user').on(table.userId),
+    tokenIdx: uniqueIndex('idx_user_notification_preferences_token').on(table.unsubscribeToken),
+  })
+);
+
+// =============================================================================
 // ENHANCED CHAT SYSTEM (from temp-supabase-auth)
 // =============================================================================
 
@@ -545,6 +673,40 @@ export const embeddings = pgTable(
 // RELATIONS
 // =============================================================================
 
+// Email System Relations
+export const emailTemplatesRelations = relations(emailTemplates, ({ one, many }) => ({
+  createdBy: one(users, {
+    fields: [emailTemplates.createdBy],
+    references: [users.id],
+  }),
+  versions: many(emailTemplateVersions),
+}));
+
+export const emailLogsRelations = relations(emailLogs, ({ one }) => ({
+  template: one(emailTemplates, {
+    fields: [emailLogs.template],
+    references: [emailTemplates.name],
+  }),
+}));
+
+export const emailTemplateVersionsRelations = relations(emailTemplateVersions, ({ one }) => ({
+  template: one(emailTemplates, {
+    fields: [emailTemplateVersions.templateId],
+    references: [emailTemplates.id],
+  }),
+  createdBy: one(users, {
+    fields: [emailTemplateVersions.createdBy],
+    references: [users.id],
+  }),
+}));
+
+export const userNotificationPreferencesRelations = relations(userNotificationPreferences, ({ one }) => ({
+  user: one(users, {
+    fields: [userNotificationPreferences.userId],
+    references: [users.id],
+  }),
+}));
+
 // Team System Relations
 export const teamsRelations = relations(teams, ({ many }) => ({
   teamMembers: many(teamMembers),
@@ -760,6 +922,27 @@ export const insertInvitationSchema = createInsertSchema(invitations);
 export const selectInvitationSchema = createSelectSchema(invitations);
 export type InsertInvitation = z.infer<typeof insertInvitationSchema>;
 export type SelectInvitation = z.infer<typeof selectInvitationSchema>;
+
+// Email System schemas
+export const insertEmailTemplateSchema = createInsertSchema(emailTemplates);
+export const selectEmailTemplateSchema = createSelectSchema(emailTemplates);
+export type InsertEmailTemplate = z.infer<typeof insertEmailTemplateSchema>;
+export type SelectEmailTemplate = z.infer<typeof selectEmailTemplateSchema>;
+
+export const insertEmailLogSchema = createInsertSchema(emailLogs);
+export const selectEmailLogSchema = createSelectSchema(emailLogs);
+export type InsertEmailLog = z.infer<typeof insertEmailLogSchema>;
+export type SelectEmailLog = z.infer<typeof selectEmailLogSchema>;
+
+export const insertEmailTemplateVersionSchema = createInsertSchema(emailTemplateVersions);
+export const selectEmailTemplateVersionSchema = createSelectSchema(emailTemplateVersions);
+export type InsertEmailTemplateVersion = z.infer<typeof insertEmailTemplateVersionSchema>;
+export type SelectEmailTemplateVersion = z.infer<typeof selectEmailTemplateVersionSchema>;
+
+export const insertUserNotificationPreferencesSchema = createInsertSchema(userNotificationPreferences);
+export const selectUserNotificationPreferencesSchema = createSelectSchema(userNotificationPreferences);
+export type InsertUserNotificationPreferences = z.infer<typeof insertUserNotificationPreferencesSchema>;
+export type SelectUserNotificationPreferences = z.infer<typeof selectUserNotificationPreferencesSchema>;
 
 // Legacy Chat schemas (keeping for backward compatibility)
 export const insertChatSchema = createInsertSchema(chats);
