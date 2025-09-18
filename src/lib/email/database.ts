@@ -1,12 +1,18 @@
+import { and, count, desc, eq, gte, lte } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
-import { eq, desc, and, count } from 'drizzle-orm';
 
-import { emailLogs, type InsertEmailLog, type SelectEmailLog } from '@/lib/db/schema';
+import {
+  type InsertEmailLog,
+  type SelectEmailLog,
+  emailLogs,
+} from '@/lib/db/schema';
+
 import type { EmailStatus, EmailTemplate } from './types';
 
 // Database connection
-const connectionString = process.env.VECTOR_DATABASE_URL || process.env.DATABASE_URL || '';
+const connectionString =
+  process.env.VECTOR_DATABASE_URL || process.env.DATABASE_URL || '';
 const sql = postgres(connectionString);
 const db = drizzle(sql);
 
@@ -146,11 +152,12 @@ export class EmailDatabase {
 
       // Build where conditions
       const conditions = [];
-      if (startDate) conditions.push(eq(emailLogs.createdAt, startDate));
-      if (endDate) conditions.push(eq(emailLogs.createdAt, endDate));
+      if (startDate) conditions.push(gte(emailLogs.createdAt, startDate));
+      if (endDate) conditions.push(lte(emailLogs.createdAt, endDate));
       if (template) conditions.push(eq(emailLogs.template, template));
 
-      const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+      const whereClause =
+        conditions.length > 0 ? and(...conditions) : undefined;
 
       // Get counts by status
       const stats = await db
@@ -175,7 +182,6 @@ export class EmailDatabase {
       stats.forEach((stat) => {
         const status = stat.status as EmailStatus;
         const statCount = stat.count || 0;
-        
         result.total += statCount;
         result[status] = statCount;
       });
@@ -227,16 +233,20 @@ export class EmailDatabase {
    * Initialize database tables (run migrations)
    * This is a simple check - in production you'd use proper migrations
    */
-  static async initializeDatabase(): Promise<{ success: boolean; error?: string }> {
+  static async initializeDatabase(): Promise<{
+    success: boolean;
+    error?: string;
+  }> {
     try {
       // This is a basic initialization check
       // In a real implementation, you'd use proper migration tools
       const testResult = await this.testConnection();
-      
+
       if (!testResult.success) {
         return {
           success: false,
-          error: 'Database connection failed. Please ensure the email_logs table exists.',
+          error:
+            'Database connection failed. Please ensure the email_logs table exists.',
         };
       }
 
@@ -244,7 +254,10 @@ export class EmailDatabase {
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Database initialization failed',
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Database initialization failed',
       };
     }
   }

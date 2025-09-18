@@ -868,6 +868,153 @@ export const securityEventsRelations = relations(securityEvents, ({ one }) => ({
 }));
 
 // =============================================================================
+// EMAIL SYSTEM TABLES
+// =============================================================================
+
+// Email logs for tracking sent emails
+export const emailLogs = pgTable(
+  'email_logs',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    to: text('to').notNull(), // Recipient email address
+    subject: text('subject').notNull(), // Email subject
+    template: text('template').notNull(), // Template used (welcome, password-reset, etc.)
+    status: text('status').notNull().default('pending'), // pending, sent, delivered, bounced, failed
+    resendId: text('resend_id'), // Resend message ID
+    variables: jsonb('variables'), // Template variables used
+    error: text('error'), // Error message if failed
+    sentAt: timestamp('sent_at', { withTimezone: true }), // When email was sent
+    deliveredAt: timestamp('delivered_at', { withTimezone: true }), // When email was delivered
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    toIdx: index('idx_email_logs_to').on(table.to),
+    statusIdx: index('idx_email_logs_status').on(table.status),
+    templateIdx: index('idx_email_logs_template').on(table.template),
+    createdAtIdx: index('idx_email_logs_created_at').on(table.createdAt.desc()),
+    resendIdIdx: index('idx_email_logs_resend_id').on(table.resendId),
+  })
+);
+
+// Email templates for storing reusable templates (Phase 2)
+export const emailTemplates = pgTable(
+  'email_templates',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    name: text('name').notNull().unique(), // Template identifier
+    displayName: text('display_name').notNull(), // Human-readable name
+    description: text('description'), // Template description
+    subject: text('subject').notNull(), // Default subject line
+    category: text('category').notNull().default('transactional'), // transactional, marketing, system
+    isActive: boolean('is_active').notNull().default(true), // Whether template is active
+    variables: jsonb('variables').default('{}'), // Required variables schema
+    createdBy: uuid('created_by').notNull(), // User who created the template
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    nameIdx: uniqueIndex('idx_email_templates_name').on(table.name),
+    categoryIdx: index('idx_email_templates_category').on(table.category),
+    activeIdx: index('idx_email_templates_active').on(table.isActive),
+    createdByIdx: index('idx_email_templates_created_by').on(table.createdBy),
+  })
+);
+
+// Email campaigns for bulk/marketing emails (Phase 4)
+export const emailCampaigns = pgTable(
+  'email_campaigns',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    name: text('name').notNull(), // Campaign name
+    subject: text('subject').notNull(), // Email subject
+    templateId: uuid('template_id').references(() => emailTemplates.id),
+    status: text('status').notNull().default('draft'), // draft, scheduled, sending, sent, failed
+    recipientCount: integer('recipient_count').default(0), // Total recipients
+    sentCount: integer('sent_count').default(0), // Successfully sent
+    failedCount: integer('failed_count').default(0), // Failed sends
+    scheduledAt: timestamp('scheduled_at', { withTimezone: true }), // When to send
+    startedAt: timestamp('started_at', { withTimezone: true }), // When sending started
+    completedAt: timestamp('completed_at', { withTimezone: true }), // When sending completed
+    createdBy: uuid('created_by').notNull(), // User who created the campaign
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    statusIdx: index('idx_email_campaigns_status').on(table.status),
+    scheduledAtIdx: index('idx_email_campaigns_scheduled').on(table.scheduledAt),
+    createdByIdx: index('idx_email_campaigns_created_by').on(table.createdBy),
+    templateIdx: index('idx_email_campaigns_template').on(table.templateId),
+  })
+);
+
+// Email campaign recipients for tracking individual sends (Phase 4)
+export const emailCampaignRecipients = pgTable(
+  'email_campaign_recipients',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    campaignId: uuid('campaign_id')
+      .notNull()
+      .references(() => emailCampaigns.id, { onDelete: 'cascade' }),
+    email: text('email').notNull(), // Recipient email
+    status: text('status').notNull().default('pending'), // pending, sent, delivered, bounced, failed
+    resendId: text('resend_id'), // Resend message ID
+    error: text('error'), // Error message if failed
+    sentAt: timestamp('sent_at', { withTimezone: true }),
+    deliveredAt: timestamp('delivered_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    campaignIdx: index('idx_email_campaign_recipients_campaign').on(table.campaignId),
+    emailIdx: index('idx_email_campaign_recipients_email').on(table.email),
+    statusIdx: index('idx_email_campaign_recipients_status').on(table.status),
+    campaignEmailIdx: uniqueIndex('idx_campaign_recipients_campaign_email').on(
+      table.campaignId,
+      table.email
+    ),
+  })
+);
+
+// Email Relations
+export const emailLogsRelations = relations(emailLogs, ({ one }) => ({}));
+
+export const emailTemplatesRelations = relations(emailTemplates, ({ many }) => ({
+  campaigns: many(emailCampaigns),
+}));
+
+export const emailCampaignsRelations = relations(emailCampaigns, ({ one, many }) => ({
+  template: one(emailTemplates, {
+    fields: [emailCampaigns.templateId],
+    references: [emailTemplates.id],
+  }),
+  recipients: many(emailCampaignRecipients),
+}));
+
+export const emailCampaignRecipientsRelations = relations(
+  emailCampaignRecipients,
+  ({ one }) => ({
+    campaign: one(emailCampaigns, {
+      fields: [emailCampaignRecipients.campaignId],
+      references: [emailCampaigns.id],
+    }),
+  })
+);
+
+// =============================================================================
 // ZOD SCHEMAS (Generated from Drizzle tables)
 // =============================================================================
 
@@ -1007,6 +1154,27 @@ export const insertSecurityEventSchema = createInsertSchema(securityEvents);
 export const selectSecurityEventSchema = createSelectSchema(securityEvents);
 export type InsertSecurityEvent = z.infer<typeof insertSecurityEventSchema>;
 export type SelectSecurityEvent = z.infer<typeof selectSecurityEventSchema>;
+
+// Email System schemas
+export const insertEmailLogSchema = createInsertSchema(emailLogs);
+export const selectEmailLogSchema = createSelectSchema(emailLogs);
+export type InsertEmailLog = z.infer<typeof insertEmailLogSchema>;
+export type SelectEmailLog = z.infer<typeof selectEmailLogSchema>;
+
+export const insertEmailTemplateSchema = createInsertSchema(emailTemplates);
+export const selectEmailTemplateSchema = createSelectSchema(emailTemplates);
+export type InsertEmailTemplate = z.infer<typeof insertEmailTemplateSchema>;
+export type SelectEmailTemplate = z.infer<typeof selectEmailTemplateSchema>;
+
+export const insertEmailCampaignSchema = createInsertSchema(emailCampaigns);
+export const selectEmailCampaignSchema = createSelectSchema(emailCampaigns);
+export type InsertEmailCampaign = z.infer<typeof insertEmailCampaignSchema>;
+export type SelectEmailCampaign = z.infer<typeof selectEmailCampaignSchema>;
+
+export const insertEmailCampaignRecipientSchema = createInsertSchema(emailCampaignRecipients);
+export const selectEmailCampaignRecipientSchema = createSelectSchema(emailCampaignRecipients);
+export type InsertEmailCampaignRecipient = z.infer<typeof insertEmailCampaignRecipientSchema>;
+export type SelectEmailCampaignRecipient = z.infer<typeof selectEmailCampaignRecipientSchema>;
 
 // =============================================================================
 // LEGACY COMPATIBILITY TYPES (for existing code)
@@ -1148,6 +1316,12 @@ export type UserDocumentVec = SelectUserDocumentVec;
 export type ErrorFeedback = SelectErrorFeedback;
 export type UserSession = SelectUserSession;
 export type SecurityEvent = SelectSecurityEvent;
+
+// Email System exports
+export type EmailLog = SelectEmailLog;
+export type EmailTemplate = SelectEmailTemplate;
+export type EmailCampaign = SelectEmailCampaign;
+export type EmailCampaignRecipient = SelectEmailCampaignRecipient;
 
 // Legacy compatibility exports
 export type Chat = SelectChat;
