@@ -1,22 +1,20 @@
 import { Resend } from 'resend';
 import { z } from 'zod';
 
-import type {
-  EmailResponse,
-  BulkEmailResponse,
-  EmailTemplate,
-  EmailLog,
-  EmailStatus,
-} from './types';
-import { SendEmailRequestSchema, BulkEmailRequestSchema } from './types';
 
-// Import email templates
-import { WelcomeEmail } from './templates/welcome';
-import { PasswordResetEmail } from './templates/password-reset';
-import { NotificationEmail } from './templates/notification';
 
 // Import database service
 import { EmailDatabase } from './database';
+import { NotificationEmail } from './templates/notification';
+import { PasswordResetEmail } from './templates/password-reset';
+// Import email templates
+import { WelcomeEmail } from './templates/welcome';
+import type { BulkEmailResponse, EmailLog, EmailResponse, EmailStatus, EmailTemplate } from './types';
+import { BulkEmailRequestSchema, SendEmailRequestSchema } from './types';
+
+
+
+
 
 // Initialize Resend client
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -39,10 +37,10 @@ export class EmailService {
     try {
       // Validate input data
       const validatedData = SendEmailRequestSchema.parse(data);
-      
+
       // Get the email template component
       const emailTemplate = this.getEmailTemplate(validatedData.template, validatedData.variables);
-      
+
       // Send email via Resend
       const response = await resend.emails.send({
         from: EMAIL_CONFIG.fromEmail,
@@ -75,7 +73,7 @@ export class EmailService {
       };
     } catch (error) {
       console.error('Email service error:', error);
-      
+
       // Log failed email
       await EmailDatabase.logEmail({
         to: data.to,
@@ -100,18 +98,21 @@ export class EmailService {
     try {
       // Validate input data
       const validatedData = BulkEmailRequestSchema.parse(data);
-      
+
       // Split recipients into batches if needed
       const batches = this.chunkArray(validatedData.recipients, EMAIL_CONFIG.maxBulkSize);
       const results: BulkEmailResponse['results'] = [];
-      
+
       for (const batch of batches) {
         // Get the email template component
-        const emailTemplate = this.getEmailTemplate(validatedData.template, validatedData.variables);
-        
+        const emailTemplate = this.getEmailTemplate(
+          validatedData.template,
+          validatedData.variables
+        );
+
         // Send batch via Resend
         const response = await resend.batch.send(
-          batch.map(email => ({
+          batch.map((email) => ({
             from: EMAIL_CONFIG.fromEmail,
             to: email,
             subject: validatedData.subject,
@@ -129,7 +130,7 @@ export class EmailService {
               success: false,
               error: response.error.message || 'Batch send failed',
             });
-            
+
             // Log failed email
             await EmailDatabase.logEmail({
               to: email,
@@ -146,13 +147,13 @@ export class EmailService {
             response.data.data.forEach((result, index) => {
               const email = batch[index];
               const success = true; // If it's in data array, it was successful
-              
+
               results.push({
                 email,
                 success,
                 messageId: result.id,
               });
-              
+
               // Log each email
               EmailDatabase.logEmail({
                 to: email,
@@ -178,7 +179,7 @@ export class EmailService {
       };
     } catch (error) {
       console.error('Bulk email service error:', error);
-      
+
       // Log all emails as failed
       for (const email of data.recipients) {
         await EmailDatabase.logEmail({
