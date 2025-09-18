@@ -1,8 +1,8 @@
 import { z } from 'zod';
 import { db } from '@/lib/db/postgres';
 import { eq, and, desc } from 'drizzle-orm';
-import { 
-  emailTemplates, 
+import {
+  emailTemplates,
   emailTemplateVersions,
   type SelectEmailTemplate,
   type SelectEmailTemplateVersion,
@@ -94,7 +94,7 @@ export class TemplateService {
    * Update an existing template
    */
   static async updateTemplate(
-    templateId: string, 
+    templateId: string,
     data: UpdateTemplateData
   ): Promise<SelectEmailTemplate> {
     const user = await getUser();
@@ -125,10 +125,7 @@ export class TemplateService {
       const existing = await db
         .select()
         .from(emailTemplates)
-        .where(and(
-          eq(emailTemplates.name, validatedData.name),
-          eq(emailTemplates.id, templateId) // Exclude current template
-        ))
+        .where(eq(emailTemplates.name, validatedData.name))
         .limit(1);
 
       if (existing.length > 0) {
@@ -148,7 +145,7 @@ export class TemplateService {
       .returning();
 
     // Create a new version if content changed
-    const contentChanged = 
+    const contentChanged =
       validatedData.subject !== undefined ||
       validatedData.htmlContent !== undefined ||
       validatedData.textContent !== undefined ||
@@ -181,15 +178,15 @@ export class TemplateService {
     let query = db.select().from(emailTemplates);
 
     const conditions = [];
-    
+
     if (options.category) {
       conditions.push(eq(emailTemplates.category, options.category));
     }
-    
+
     if (options.active !== undefined) {
       conditions.push(eq(emailTemplates.isActive, options.active));
     }
-    
+
     if (!options.includeSystem) {
       conditions.push(eq(emailTemplates.isSystem, false));
     }
@@ -205,14 +202,14 @@ export class TemplateService {
    * Get a template by ID or name
    */
   static async getTemplate(
-    identifier: string, 
+    identifier: string,
     byName = false
   ): Promise<SelectEmailTemplate | null> {
     const [template] = await db
       .select()
       .from(emailTemplates)
       .where(
-        byName 
+        byName
           ? eq(emailTemplates.name, identifier)
           : eq(emailTemplates.id, identifier)
       )
@@ -236,7 +233,7 @@ export class TemplateService {
    * Get a specific template version
    */
   static async getTemplateVersion(
-    templateId: string, 
+    templateId: string,
     version: number
   ): Promise<SelectEmailTemplateVersion | null> {
     const [templateVersion] = await db
@@ -304,7 +301,7 @@ export class TemplateService {
    * Restore a template to a specific version
    */
   static async restoreTemplateVersion(
-    templateId: string, 
+    templateId: string,
     version: number,
     changeNote?: string
   ): Promise<SelectEmailTemplate> {
@@ -380,7 +377,7 @@ export class TemplateService {
     categories: Record<string, number>;
   }> {
     const templates = await db.select().from(emailTemplates);
-    
+
     const stats = {
       total: templates.length,
       active: templates.filter(t => t.isActive).length,
@@ -401,7 +398,7 @@ export class TemplateService {
    * Validate template variables against provided data
    */
   static validateTemplateVariables(
-    templateVariables: TemplateVariable[], 
+    templateVariables: TemplateVariable[],
     providedData: Record<string, any>
   ): { isValid: boolean; errors: string[]; missingRequired: string[] } {
     const errors: string[] = [];
@@ -409,7 +406,7 @@ export class TemplateService {
 
     templateVariables.forEach(variable => {
       const value = providedData[variable.name];
-      
+
       // Check required variables
       if (variable.required && (value === undefined || value === null || value === '')) {
         missingRequired.push(variable.name);
