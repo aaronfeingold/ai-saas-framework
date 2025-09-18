@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { EmailService } from './service';
 import { EmailDatabase } from './database';
 import { db } from '@/lib/db/postgres';
-import { eq, count } from 'drizzle-orm';
+import { eq, count, sql } from 'drizzle-orm';
 import { emailLogs } from '@/lib/db/schema';
 import type { EmailTemplate } from './types';
 
@@ -244,7 +244,8 @@ export class EmailQueue {
   }
 
   /**
-   * Get queue statistics
+   * Get queue statistics - OPTIMIZED VERSION
+   * Uses SQL conditional counting to get all stats in a single query with zero JavaScript iteration
    */
   static async getQueueStats(): Promise<{
     pending: number;
@@ -252,34 +253,20 @@ export class EmailQueue {
     sent: number;
     failed: number;
   }> {
-    // Use proper SQL aggregation for accurate and efficient statistics
-    const stats = await db
+    // Use conditional counting to get all stats in a single database query
+    const [result] = await db
       .select({
-        status: emailLogs.status,
-        count: count(),
+        pending: sql<number>`count(case when ${emailLogs.status} = 'pending' then 1 end)`,
+        sent: sql<number>`count(case when ${emailLogs.status} = 'sent' then 1 end)`,
+        failed: sql<number>`count(case when ${emailLogs.status} = 'failed' then 1 end)`,
       })
-      .from(emailLogs)
-      .groupBy(emailLogs.status);
-
-    const counts = {
-      pending: 0,
-      processing: 0,
-      sent: 0,
-      failed: 0,
-    };
-
-    // Process aggregated results
-    stats.forEach((stat: { status: string; count: number }) => {
-      const status = stat.status;
-      const statCount = stat.count || 0;
-      if (status in counts) {
-        counts[status as keyof typeof counts] = statCount;
-      }
-    });
+      .from(emailLogs);
 
     return {
-      ...counts,
+      pending: result.pending,
       processing: this.isProcessing ? 1 : 0,
+      sent: result.sent,
+      failed: result.failed,
     };
   }
 
