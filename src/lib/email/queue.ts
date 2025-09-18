@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { EmailService } from './service';
 import { EmailDatabase } from './database';
 import { db } from '@/lib/db/postgres';
-import { eq } from 'drizzle-orm';
+import { eq, count } from 'drizzle-orm';
 import { emailLogs } from '@/lib/db/schema';
 import type { EmailTemplate } from './types';
 
@@ -119,7 +119,7 @@ export class EmailQueue {
           const aPriority = this.getPriorityValue(a.variables?._queue?.priority || 'normal');
           const bPriority = this.getPriorityValue(b.variables?._queue?.priority || 'normal');
           if (aPriority !== bPriority) return bPriority - aPriority;
-          
+
           const aScheduled = new Date(a.variables?._queue?.scheduledAt || a.createdAt);
           const bScheduled = new Date(b.variables?._queue?.scheduledAt || b.createdAt);
           return aScheduled.getTime() - bScheduled.getTime();
@@ -233,10 +233,10 @@ export class EmailQueue {
    */
   static startProcessor(intervalMs = 60000): void {
     console.log(`Starting email queue processor with ${intervalMs}ms interval`);
-    
+
     // Process immediately
     this.processQueue();
-    
+
     // Set up interval
     setInterval(() => {
       this.processQueue();
@@ -252,12 +252,14 @@ export class EmailQueue {
     sent: number;
     failed: number;
   }> {
+    // Use proper SQL aggregation for accurate and efficient statistics
     const stats = await db
       .select({
         status: emailLogs.status,
-        count: emailLogs.id,
+        count: count(),
       })
-      .from(emailLogs);
+      .from(emailLogs)
+      .groupBy(emailLogs.status);
 
     const counts = {
       pending: 0,
@@ -266,13 +268,14 @@ export class EmailQueue {
       failed: 0,
     };
 
-    // Count by status - this is a simplified approach
-    // In a real implementation, you'd use SQL COUNT with GROUP BY
-    for (const stat of stats) {
-      if (stat.status in counts) {
-        counts[stat.status as keyof typeof counts]++;
+    // Process aggregated results
+    stats.forEach((stat: { status: string; count: number }) => {
+      const status = stat.status;
+      const statCount = stat.count || 0;
+      if (status in counts) {
+        counts[status as keyof typeof counts] = statCount;
       }
-    }
+    });
 
     return {
       ...counts,
@@ -293,7 +296,7 @@ export class EmailQueue {
 
     for (const email of failedEmails) {
       const queueData = email.variables?._queue || {};
-      
+
       // Reset retry counter and set to pending
       await db
         .update(emailLogs)
@@ -344,9 +347,9 @@ export class EnhancedEmailService extends EmailService {
         const queueId = await EmailQueue.addToQueue(to, subject, template, variables, queueOptions);
         return { success: true, queueId };
       } catch (error) {
-        return { 
-          success: false, 
-          error: error instanceof Error ? error.message : 'Failed to queue email' 
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Failed to queue email'
         };
       }
     }
