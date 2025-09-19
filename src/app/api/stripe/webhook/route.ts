@@ -72,7 +72,7 @@ async function handleSubscriptionEmail(
 ) {
   const customerId = subscription.customer as string;
   const team = await getTeamByStripeCustomerId(customerId);
-  
+
   if (!team) {
     console.error('Team not found for Stripe customer:', customerId);
     return;
@@ -93,10 +93,16 @@ async function handleSubscriptionEmail(
 
   const user = teamData.user;
   const plan = subscription.items.data[0]?.plan;
-  const product = await stripe.products.retrieve(plan?.product as string);
+
+  if (!plan?.product) {
+    console.error('No product found for subscription:', subscription.id);
+    return;
+  }
+
+  const product = await stripe.products.retrieve(plan.product);
 
   let changeType: 'upgrade' | 'downgrade' | 'cancel' | 'reactivate';
-  
+
   if (eventType === 'customer.subscription.created') {
     changeType = 'upgrade';
   } else if (eventType === 'customer.subscription.deleted') {
@@ -111,12 +117,12 @@ async function handleSubscriptionEmail(
     getSubscriptionChangeSubject(changeType, product.name),
     'subscription-change',
     {
-      firstName: user.fullName.split(' ')[0] || user.displayName || 'User',
+      firstName: user.fullName?.split(' ')[0] || user.displayName || 'User',
       changeType,
       oldPlan: team.planName,
       newPlan: product.name,
       effectiveDate: new Date(subscription.current_period_start * 1000).toISOString(),
-      nextBillingDate: subscription.current_period_end 
+      nextBillingDate: subscription.current_period_end
         ? new Date(subscription.current_period_end * 1000).toISOString()
         : undefined,
       amount: plan?.amount ? formatStripeAmount(plan.amount, plan.currency) : undefined,
@@ -129,7 +135,7 @@ async function handleSubscriptionEmail(
 async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
   const customerId = invoice.customer as string;
   const team = await getTeamByStripeCustomerId(customerId);
-  
+
   if (!team || !invoice.subscription) {
     return;
   }
@@ -147,21 +153,27 @@ async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
     invoice.subscription as string
   );
   const plan = subscription.items.data[0]?.plan;
-  const product = await stripe.products.retrieve(plan?.product as string);
+
+  if (!plan?.product) {
+    console.error('No product found for subscription:', subscription.id);
+    return;
+  }
+
+  const product = await stripe.products.retrieve(plan.product);
 
   await EnhancedEmailService.sendEmailWithQueue(
     teamData.user.email,
     `Payment Confirmed - ${product.name}`,
     'payment-confirmation',
     {
-      firstName: teamData.user.fullName.split(' ')[0] || teamData.user.displayName || 'User',
+      firstName: teamData.user.fullName?.split(' ')[0] || teamData.user.displayName || 'User',
       amount: formatStripeAmount(invoice.amount_paid, invoice.currency),
       currency: invoice.currency.toUpperCase(),
       planName: product.name,
       invoiceUrl: invoice.hosted_invoice_url || '#',
       subscriptionStatus: subscription.status === 'active' ? 'active' : 'trialing',
       billingPeriod: plan?.interval === 'month' ? 'monthly' : 'yearly',
-      nextBillingDate: subscription.current_period_end 
+      nextBillingDate: subscription.current_period_end
         ? new Date(subscription.current_period_end * 1000).toISOString()
         : undefined,
       transactionId: invoice.payment_intent as string,
@@ -173,7 +185,7 @@ async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
 async function handlePaymentFailed(invoice: Stripe.Invoice) {
   const customerId = invoice.customer as string;
   const team = await getTeamByStripeCustomerId(customerId);
-  
+
   if (!team) return;
 
   const teamData = await db.query.teamMembers.findFirst({
@@ -203,7 +215,7 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
 async function handleInvoiceCreated(invoice: Stripe.Invoice) {
   const customerId = invoice.customer as string;
   const team = await getTeamByStripeCustomerId(customerId);
-  
+
   if (!team || !invoice.subscription) return;
 
   const teamData = await db.query.teamMembers.findFirst({
@@ -225,18 +237,18 @@ async function handleInvoiceCreated(invoice: Stripe.Invoice) {
     `Invoice ${invoice.number} - ${formatStripeAmount(invoice.total, invoice.currency)}`,
     'invoice',
     {
-      firstName: teamData.user.fullName.split(' ')[0] || teamData.user.displayName || 'User',
+      firstName: teamData.user.fullName?.split(' ')[0] || teamData.user.displayName || 'User',
       invoiceNumber: invoice.number || 'Unknown',
       amount: formatStripeAmount(invoice.total, invoice.currency),
       currency: invoice.currency.toUpperCase(),
-      dueDate: invoice.due_date 
+      dueDate: invoice.due_date
         ? new Date(invoice.due_date * 1000).toISOString()
         : new Date().toISOString(),
       invoiceUrl: invoice.hosted_invoice_url || '#',
       planName: team.planName || 'Plan',
       billingPeriod: plan?.interval === 'month' ? 'monthly' : 'yearly',
-      paymentMethod: invoice.default_payment_method 
-        ? `Payment method on file` 
+      paymentMethod: invoice.default_payment_method
+        ? `Payment method on file`
         : undefined,
     },
     { priority: 'normal' }

@@ -7,6 +7,9 @@ import { NotificationEmail } from './templates/notification';
 import { PasswordResetEmail } from './templates/password-reset';
 // Import email templates
 import { WelcomeEmail } from './templates/welcome';
+import { PaymentConfirmationEmail } from './templates/payment-confirmation';
+import { InvoiceEmail } from './templates/invoice';
+import { SubscriptionChangeEmail } from './templates/subscription-change';
 import type {
   BulkEmailResponse,
   EmailLog,
@@ -229,8 +232,11 @@ export class EmailService {
       case 'notification':
         return NotificationEmail(variables);
       case 'payment-confirmation':
-        // TODO: Implement in Phase 2
-        return NotificationEmail(variables);
+        return PaymentConfirmationEmail(variables);
+      case 'invoice':
+        return InvoiceEmail(variables);
+      case 'subscription-change':
+        return SubscriptionChangeEmail(variables);
       case 'system-update':
         // TODO: Implement in Phase 2
         return NotificationEmail(variables);
