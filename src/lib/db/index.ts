@@ -1,5 +1,6 @@
 // Export all database utilities
 export * from './supabase';
-export * from './mongodb';
+export * from './postgres';
 export * from './vector';
 export * from './cache';
+export * from './queries';

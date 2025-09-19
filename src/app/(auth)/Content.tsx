@@ -2,7 +2,17 @@ import React from 'react';
 
 import { Gavel, Gift, MessageCircle, Search } from 'lucide-react';
 
-const items = [
+interface ContentItem {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+}
+
+interface ContentProps {
+  items?: ContentItem[];
+}
+
+const defaultItems: ContentItem[] = [
   {
     icon: <Gavel className="text-muted-foreground h-5 w-5" />,
     title: 'Feature 1',
@@ -29,10 +39,12 @@ const items = [
   },
 ];
 
-export default function Content() {
+export default function Content({ items }: ContentProps) {
+  const contentItems = items || defaultItems;
+
   return (
     <div className="flex max-w-[450px] flex-col gap-8 self-center">
-      {items.map((item, index) => (
+      {contentItems.map((item, index) => (
         <div key={index} className="flex gap-4">
           <div className="mt-0.5 flex-shrink-0">{item.icon}</div>
           <div>

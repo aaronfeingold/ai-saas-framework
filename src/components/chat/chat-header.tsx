@@ -8,12 +8,12 @@ import { useRouter } from 'next/navigation';
 
 import { useWindowSize } from 'usehooks-ts';
 
+import { ModelSelector } from '@/components/chat/model-selector';
 import {
   VisibilitySelector,
   type VisibilityType,
 } from '@/components/chat/visibility-selector';
 import { PlusIcon, VercelIcon } from '@/components/icons';
-import { ModelSelector } from '@/components/model-selector';
 import { SidebarToggle } from '@/components/sidebar-toggle';
 import { Button } from '@/components/ui/button';
 import { useSidebar } from '@/components/ui/sidebar';
@@ -22,19 +22,21 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { type ModelId } from '@/lib/ai/providers';
 
 function PureChatHeader({
   chatId,
   selectedModelId,
   selectedVisibilityType,
   isReadonly,
-  session,
+  onModelSelect,
 }: {
   chatId: string;
-  selectedModelId: string;
+  selectedModelId: ModelId;
   selectedVisibilityType: VisibilityType;
   isReadonly: boolean;
   session: Session;
+  onModelSelect?: (modelId: ModelId) => void;
 }) {
   const router = useRouter();
   const { open } = useSidebar();
@@ -66,9 +68,9 @@ function PureChatHeader({
 
       {!isReadonly && (
         <ModelSelector
-          session={session}
-          selectedModelId={selectedModelId}
-          className="order-1 md:order-2"
+          selectedModel={selectedModelId}
+          onModelSelect={onModelSelect || (() => {})}
+          disabled={!onModelSelect}
         />
       )}
 

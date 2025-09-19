@@ -3,9 +3,21 @@ import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 
+import { getAppConfig } from '@/lib/config';
+
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+
+// Get application name from config
+const getApplicationName = () => {
+  try {
+    const config = getAppConfig();
+    return config.project.supabaseName;
+  } catch {
+    return 'fest-vibes-ai'; // fallback
+  }
+};
 
 // Client-side Supabase client
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
@@ -17,7 +29,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: true,
   },
   global: {
-    headers: { 'x-application-name': 'ai-saas-framework' },
+    headers: { 'x-application-name': getApplicationName() },
   },
 });
 

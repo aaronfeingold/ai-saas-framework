@@ -2,8 +2,9 @@ import { type NextRequest, NextResponse } from 'next/server';
 
 import { createServerClient } from '@supabase/ssr';
 
-export async function middleware(request: NextRequest) {
-  // Initialize Supabase client and handle session
+const AUTH_PROVIDER = process.env.AUTH_PROVIDER || 'supabase';
+
+async function supabaseMiddleware(request: NextRequest) {
   let response = NextResponse.next({
     request,
   });
@@ -31,10 +32,38 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // Get user session
   const {
     data: { user: session },
   } = await supabase.auth.getUser();
+
+  return { session, response };
+}
+
+async function nextAuthMiddleware() {
+  try {
+    const { auth } = await import('@/lib/auth/nextauth/auth');
+    const session = await auth();
+    return { session, response: NextResponse.next() };
+  } catch {
+    // NextAuth.js not available, fallback to no session
+    return { session: null, response: NextResponse.next() };
+  }
+}
+
+export async function middleware(request: NextRequest) {
+  let session = null;
+  let response = NextResponse.next();
+
+  // Use the appropriate auth middleware based on configuration
+  if (AUTH_PROVIDER === 'nextauth') {
+    const result = await nextAuthMiddleware(request);
+    session = result.session;
+    response = result.response;
+  } else {
+    const result = await supabaseMiddleware(request);
+    session = result.session;
+    response = result.response;
+  }
 
   // Handle route-specific redirects
   const currentRoute = request.nextUrl.pathname;

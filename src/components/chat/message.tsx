@@ -7,6 +7,11 @@ import cx from 'classnames';
 import equal from 'fast-deep-equal';
 import { AnimatePresence, motion } from 'framer-motion';
 
+import {
+  Message,
+  MessageAvatar,
+  MessageContent,
+} from '@/components/ai-elements/message';
 import { PencilEditIcon, SparklesIcon } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import {
@@ -25,6 +30,7 @@ import { Markdown } from './markdown';
 import { MessageActions } from './message-actions';
 import { MessageEditor } from './message-editor';
 import { MessageReasoning } from './message-reasoning';
+import { MessageSources } from './message-sources';
 import { PreviewAttachment } from './preview-attachment';
 import { Weather } from './weather';
 
@@ -67,24 +73,15 @@ const PurePreviewMessage = ({
         animate={{ y: 0, opacity: 1 }}
         data-role={message.role}
       >
-        <div
-          className={cn(
-            'flex w-full gap-4 group-data-[role=user]/message:ml-auto group-data-[role=user]/message:max-w-2xl',
-            {
-              'w-full': mode === 'edit',
-              'group-data-[role=user]/message:w-fit': mode !== 'edit',
-            }
-          )}
-        >
+        <Message from={message.role}>
           {message.role === 'assistant' && (
-            <div className="ring-border bg-background flex size-8 shrink-0 items-center justify-center rounded-full ring-1">
-              <div className="translate-y-px">
-                <SparklesIcon size={14} />
-              </div>
-            </div>
+            <MessageAvatar src="/api/placeholder-bot.svg" name="AI" />
+          )}
+          {message.role === 'user' && (
+            <MessageAvatar src="/api/placeholder-user.svg" name="You" />
           )}
 
-          <div
+          <MessageContent
             className={cn('flex w-full flex-col gap-4', {
               'min-h-96': message.role === 'assistant' && requiresScrollPadding,
             })}
@@ -317,6 +314,13 @@ const PurePreviewMessage = ({
               }
             })}
 
+            {/* Display sources if available */}
+            {message.sources &&
+              Array.isArray(message.sources) &&
+              message.sources.length > 0 && (
+                <MessageSources sources={message.sources} className="mt-4" />
+              )}
+
             {!isReadonly && (
               <MessageActions
                 key={`action-${message.id}`}
@@ -326,8 +330,8 @@ const PurePreviewMessage = ({
                 isLoading={isLoading}
               />
             )}
-          </div>
-        </div>
+          </MessageContent>
+        </Message>
       </motion.div>
     </AnimatePresence>
   );

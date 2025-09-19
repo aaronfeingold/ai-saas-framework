@@ -1,56 +1,60 @@
+import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 
-// Vector database connection configuration optimized for expensive computations
-const vectorPool = new Pool({
-  connectionString: process.env.VECTOR_DATABASE_URL!,
-  max: 5, // Limit connections for expensive vector operations
+import * as schema from './schema';
+
+// Enhanced PostgreSQL connection pool for combined business + vector operations
+const postgresPool = new Pool({
+  connectionString:
+    process.env.POSTGRES_URL || process.env.VECTOR_DATABASE_URL!,
+  max: 20, // Increased for mixed workloads (business + vector operations)
+  min: 5,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000,
-  statement_timeout: 60000, // Longer timeout for vector operations
+  statement_timeout: 60000, // Balanced timeout for both business and vector queries
 });
 
-// Initialize pgvector extension
-export const initializeVectorDB = async () => {
-  const client = await vectorPool.connect();
+// Drizzle instance for business data operations
+export const db = drizzle(postgresPool, {
+  schema,
+  logger: process.env.NODE_ENV === 'development',
+});
+
+// Separate pool for raw vector operations that need direct SQL
+export const vectorPool = postgresPool;
+
+// Initialize PostgreSQL database with all required extensions and tables
+export const initializePostgresDB = async () => {
+  const client = await postgresPool.connect();
   try {
+    // Enable required extensions
     await client.query('CREATE EXTENSION IF NOT EXISTS vector');
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS embeddings (
-        id SERIAL PRIMARY KEY,
-        content TEXT NOT NULL,
-        embedding VECTOR(1536),
-        metadata JSONB,
-        user_id TEXT,
-        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-      )
-    `);
-    await client.query(`
-      CREATE INDEX IF NOT EXISTS embeddings_user_id_idx ON embeddings(user_id)
-    `);
-    await client.query(`
-      CREATE INDEX IF NOT EXISTS embeddings_embedding_idx ON embeddings
-      USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100)
-    `);
-    console.log('Vector database initialized successfully');
+    await client.query('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"');
+
+    console.log('PostgreSQL database initialized successfully');
+    console.log('Extensions: vector, uuid-ossp');
+    console.log('Tables will be created via Drizzle migrations');
   } catch (error) {
-    console.error('Error initializing vector database:', error);
+    console.error('Error initializing PostgreSQL database:', error);
     throw error;
   } finally {
     client.release();
   }
 };
 
-// Vector similarity search
+// Legacy compatibility - alias for initializePostgresDB
+export const initializeVectorDB = initializePostgresDB;
+
+// Vector similarity search (enhanced with Drizzle integration)
 export const vectorSearch = async (
   queryEmbedding: number[],
   limit: number = 10,
   userId?: string
 ) => {
-  const client = await vectorPool.connect();
+  const client = await postgresPool.connect();
   try {
     let query = `
-      SELECT id, content, metadata,
+      SELECT id, content, metadata, user_id,
              1 - (embedding <=> $1::vector) as similarity
       FROM embeddings
     `;
@@ -71,14 +75,14 @@ export const vectorSearch = async (
   }
 };
 
-// Store embedding
+// Store embedding (enhanced)
 export const storeEmbedding = async (
   content: string,
   embedding: number[],
   metadata: Record<string, unknown> = {},
   userId?: string
 ) => {
-  const client = await vectorPool.connect();
+  const client = await postgresPool.connect();
   try {
     const result = await client.query(
       `INSERT INTO embeddings (content, embedding, metadata, user_id)
@@ -94,7 +98,7 @@ export const storeEmbedding = async (
 
 // Delete embeddings by user
 export const deleteUserEmbeddings = async (userId: string) => {
-  const client = await vectorPool.connect();
+  const client = await postgresPool.connect();
   try {
     const result = await client.query(
       'DELETE FROM embeddings WHERE user_id = $1',
@@ -106,15 +110,26 @@ export const deleteUserEmbeddings = async (userId: string) => {
   }
 };
 
-// Health check function
-export const checkVectorHealth = async () => {
+// Enhanced health check function for combined database
+export const checkPostgresHealth = async () => {
   try {
-    const client = await vectorPool.connect();
+    const client = await postgresPool.connect();
+
+    // Test basic connection
     await client.query('SELECT 1');
+
+    // Test vector extension
+    await client.query("SELECT vector_dims('[1,2,3]'::vector)");
+
+    // Test business tables (basic connectivity)
+    await client.query('SELECT COUNT(*) FROM chats LIMIT 1');
+
     client.release();
+
     return {
       healthy: true,
-      message: 'Connected',
+      message: 'Connected - Business + Vector operations ready',
+      extensions: ['vector', 'uuid-ossp'],
       timestamp: new Date().toISOString(),
     };
   } catch (error) {
@@ -126,4 +141,16 @@ export const checkVectorHealth = async () => {
   }
 };
 
-export { vectorPool };
+// Legacy compatibility - alias for checkPostgresHealth
+export const checkVectorHealth = checkPostgresHealth;
+
+// Connection pool management
+export const closePostgresConnections = async () => {
+  await postgresPool.end();
+};
+
+// Export the pool for direct access when needed
+export { postgresPool };
+
+// Export Drizzle database instance as default
+export default db;

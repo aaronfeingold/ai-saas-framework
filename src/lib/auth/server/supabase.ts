@@ -41,3 +41,37 @@ export const getUserInfo = cache(async () => {
     return null;
   }
 });
+
+// Helper to ensure user exists in our users table
+export const ensureUserExists = cache(async () => {
+  const user = await getSession();
+  if (!user) return null;
+
+  const supabase = await createServerSupabaseClient();
+
+  // Check if user exists in our users table
+  const { data: existingUser } = await supabase
+    .from('users')
+    .select('id')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  if (!existingUser) {
+    // Create user in our users table
+    const { error } = await supabase.from('users').insert({
+      id: user.id,
+      email: user.email || '',
+      full_name:
+        user.user_metadata?.full_name ||
+        user.email?.split('@')[0] ||
+        'Anonymous',
+    });
+
+    if (error) {
+      console.error('Error creating user:', error);
+      return null;
+    }
+  }
+
+  return user;
+});
