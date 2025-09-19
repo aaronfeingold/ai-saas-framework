@@ -72,6 +72,13 @@ export default function EmailTestPage() {
 
   const [emailLogs, setEmailLogs] = useState<EmailLog[]>([]);
   const [emailStats, setEmailStats] = useState<EmailStats | null>(null);
+  const [queueStats, setQueueStats] = useState<{
+    pending: number;
+    processing: number;
+    sent: number;
+    failed: number;
+  } | null>(null);
+  const [queueMessage, setQueueMessage] = useState<string | null>(null);
   const [logsLoading, setLogsLoading] = useState(false);
 
   // Test system connectivity
@@ -80,7 +87,7 @@ export default function EmailTestPage() {
       setSystemStatus(prev => ({ ...prev, loading: true }));
       const response = await fetch('/api/email/test');
       const data = await response.json();
-      
+
       setSystemStatus({
         success: data.success,
         tests: data.tests,
@@ -143,7 +150,7 @@ export default function EmailTestPage() {
       setLogsLoading(true);
       const response = await fetch('/api/email/logs?limit=10');
       const data = await response.json();
-      
+
       if (data.success) {
         setEmailLogs(data.data.logs);
       }
@@ -159,7 +166,7 @@ export default function EmailTestPage() {
     try {
       const response = await fetch('/api/email/stats');
       const data = await response.json();
-      
+
       if (data.success) {
         setEmailStats(data.data.overview);
       }
@@ -168,10 +175,78 @@ export default function EmailTestPage() {
     }
   };
 
+  // Load queue statistics
+  const loadQueueStats = async () => {
+    try {
+      const response = await fetch('/api/email/queue');
+      const data = await response.json();
+
+      if (data.success) {
+        setQueueStats(data.stats);
+      }
+    } catch (error) {
+      toast.error('Failed to load queue statistics');
+    }
+  };
+
+  // Process email queue
+  const processQueue = async () => {
+    try {
+      const response = await fetch('/api/email/queue', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action: 'process' }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setQueueMessage(data.message);
+        setTimeout(() => setQueueMessage(null), 3000);
+        loadQueueStats(); // Refresh stats
+        loadEmailLogs(); // Refresh logs
+        toast.success('Queue processing initiated');
+      } else {
+        toast.error(data.error || 'Failed to process queue');
+      }
+    } catch (error) {
+      toast.error('Failed to process queue');
+    }
+  };
+
+  // Retry failed emails
+  const retryFailedEmails = async () => {
+    try {
+      const response = await fetch('/api/email/queue', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action: 'retry-failed' }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setQueueMessage(data.message);
+        setTimeout(() => setQueueMessage(null), 3000);
+        loadQueueStats(); // Refresh stats
+        toast.success(`${data.retriedCount} failed emails queued for retry`);
+      } else {
+        toast.error(data.error || 'Failed to retry emails');
+      }
+    } catch (error) {
+      toast.error('Failed to retry failed emails');
+    }
+  };
+
   useEffect(() => {
     testSystem();
     loadEmailLogs();
     loadEmailStats();
+    loadQueueStats();
   }, []);
 
   const getStatusColor = (status: string) => {
@@ -210,24 +285,24 @@ export default function EmailTestPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center gap-4">
-            <Button 
-              onClick={testSystem} 
+            <Button
+              onClick={testSystem}
               disabled={systemStatus.loading}
               variant="outline"
             >
               {systemStatus.loading ? 'Testing...' : 'Test System'}
             </Button>
-            <Badge 
+            <Badge
               variant={systemStatus.success ? 'default' : 'destructive'}
             >
               {systemStatus.success ? 'Operational' : 'Issues Detected'}
             </Badge>
           </div>
-          
+
           <div className="grid grid-cols-2 gap-4">
             <div className="flex items-center gap-2">
               <span className="font-medium">Resend Connection:</span>
-              <Badge 
+              <Badge
                 variant={systemStatus.tests.resendConnection ? 'default' : 'destructive'}
               >
                 {systemStatus.tests.resendConnection ? 'Connected' : 'Failed'}
@@ -235,7 +310,7 @@ export default function EmailTestPage() {
             </div>
             <div className="flex items-center gap-2">
               <span className="font-medium">Database Connection:</span>
-              <Badge 
+              <Badge
                 variant={systemStatus.tests.databaseConnection ? 'default' : 'destructive'}
               >
                 {systemStatus.tests.databaseConnection ? 'Connected' : 'Failed'}
@@ -251,6 +326,68 @@ export default function EmailTestPage() {
                   <li key={index}>{error}</li>
                 ))}
               </ul>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Email Queue Management */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Email Queue Management</CardTitle>
+          <CardDescription>
+            Manage and monitor the email delivery queue
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex gap-4">
+            <Button
+              onClick={processQueue}
+              disabled={queueStats?.processing}
+              variant="outline"
+            >
+              {queueStats?.processing ? 'Processing...' : 'Process Queue'}
+            </Button>
+            <Button
+              onClick={retryFailedEmails}
+              disabled={!queueStats?.failed || queueStats.failed === 0}
+              variant="outline"
+            >
+              Retry Failed ({queueStats?.failed || 0})
+            </Button>
+            <Button
+              onClick={loadQueueStats}
+              variant="outline"
+              size="sm"
+            >
+              Refresh
+            </Button>
+          </div>
+
+          {queueStats && (
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+              <div className="text-center p-3 border rounded">
+                <div className="text-2xl font-bold text-yellow-600">{queueStats.pending}</div>
+                <div className="text-sm text-muted-foreground">Pending</div>
+              </div>
+              <div className="text-center p-3 border rounded">
+                <div className="text-2xl font-bold text-blue-600">{queueStats.processing}</div>
+                <div className="text-sm text-muted-foreground">Processing</div>
+              </div>
+              <div className="text-center p-3 border rounded">
+                <div className="text-2xl font-bold text-green-600">{queueStats.sent}</div>
+                <div className="text-sm text-muted-foreground">Sent</div>
+              </div>
+              <div className="text-center p-3 border rounded">
+                <div className="text-2xl font-bold text-red-600">{queueStats.failed}</div>
+                <div className="text-sm text-muted-foreground">Failed</div>
+              </div>
+            </div>
+          )}
+
+          {queueMessage && (
+            <div className="rounded-md border border-green-200 bg-green-50 p-3">
+              <p className="text-green-800">{queueMessage}</p>
             </div>
           )}
         </CardContent>
@@ -330,8 +467,8 @@ export default function EmailTestPage() {
               </Select>
             </div>
           </div>
-          <Button 
-            onClick={sendTestEmail} 
+          <Button
+            onClick={sendTestEmail}
             disabled={sendingTest || !testEmail}
           >
             {sendingTest ? 'Sending...' : 'Send Test Email'}
@@ -353,7 +490,7 @@ export default function EmailTestPage() {
               {logsLoading ? 'Loading...' : 'Refresh Logs'}
             </Button>
           </div>
-          
+
           <Table>
             <TableHeader>
               <TableRow>

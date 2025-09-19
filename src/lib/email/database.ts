@@ -86,15 +86,13 @@ export class EmailDatabase {
   /**
    * Get email logs with optional filtering
    */
-  static async getEmailLogs(
-    options: {
-      limit?: number;
-      offset?: number;
-      status?: EmailStatus;
-      template?: EmailTemplate;
-      email?: string;
-    } = {}
-  ): Promise<{
+  static async getEmailLogs(options: {
+    limit?: number;
+    offset?: number;
+    status?: EmailStatus;
+    template?: EmailTemplate;
+    email?: string;
+  } = {}): Promise<{
     logs: SelectEmailLog[];
     total: number;
   }> {
@@ -107,8 +105,7 @@ export class EmailDatabase {
       if (template) conditions.push(eq(emailLogs.template, template));
       if (email) conditions.push(eq(emailLogs.to, email));
 
-      const whereClause =
-        conditions.length > 0 ? and(...conditions) : undefined;
+      const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
       // Get logs
       const logs = await db
@@ -138,13 +135,11 @@ export class EmailDatabase {
   /**
    * Get email statistics
    */
-  static async getEmailStats(
-    options: {
-      startDate?: Date;
-      endDate?: Date;
-      template?: EmailTemplate;
-    } = {}
-  ): Promise<{
+  static async getEmailStats(options: {
+    startDate?: Date;
+    endDate?: Date;
+    template?: EmailTemplate;
+  } = {}): Promise<{
     total: number;
     sent: number;
     delivered: number;
@@ -187,7 +182,6 @@ export class EmailDatabase {
       stats.forEach((stat) => {
         const status = stat.status as EmailStatus;
         const statCount = stat.count || 0;
-
         result.total += statCount;
         result[status] = statCount;
       });
@@ -230,8 +224,7 @@ export class EmailDatabase {
     } catch (error) {
       return {
         success: false,
-        error:
-          error instanceof Error ? error.message : 'Unknown database error',
+        error: error instanceof Error ? error.message : 'Unknown database error',
       };
     }
   }

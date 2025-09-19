@@ -4,13 +4,13 @@ import { z } from 'zod';
 export type EmailStatus = 'pending' | 'sent' | 'delivered' | 'bounced' | 'failed';
 
 // Email template types
-export type EmailTemplate = 'welcome' | 'password-reset' | 'notification' | 'payment-confirmation' | 'system-update' | 'marketing';
+export type EmailTemplate = 'welcome' | 'password-reset' | 'notification' | 'payment-confirmation' | 'invoice' | 'subscription-change' | 'system-update' | 'marketing';
 
 // Base email data schema
 export const EmailDataSchema = z.object({
   to: z.string().email(),
   subject: z.string().min(1, 'Subject is required'),
-  template: z.enum(['welcome', 'password-reset', 'notification', 'payment-confirmation', 'system-update', 'marketing']),
+  template: z.enum(['welcome', 'password-reset', 'notification', 'payment-confirmation', 'invoice', 'subscription-change', 'system-update', 'marketing']),
   variables: z.record(z.any()).optional(),
 });
 
@@ -18,7 +18,7 @@ export const EmailDataSchema = z.object({
 export const SendEmailRequestSchema = z.object({
   to: z.string().email(),
   subject: z.string().min(1, 'Subject is required'),
-  template: z.enum(['welcome', 'password-reset', 'notification', 'payment-confirmation', 'system-update', 'marketing']),
+  template: z.enum(['welcome', 'password-reset', 'notification', 'payment-confirmation', 'invoice', 'subscription-change', 'system-update', 'marketing']),
   variables: z.record(z.any()).optional(),
 });
 
@@ -26,7 +26,7 @@ export const SendEmailRequestSchema = z.object({
 export const BulkEmailRequestSchema = z.object({
   recipients: z.array(z.string().email()).min(1, 'At least one recipient required'),
   subject: z.string().min(1, 'Subject is required'),
-  template: z.enum(['welcome', 'password-reset', 'notification', 'payment-confirmation', 'system-update', 'marketing']),
+  template: z.enum(['welcome', 'password-reset', 'notification', 'payment-confirmation', 'invoice', 'subscription-change', 'system-update', 'marketing']),
   variables: z.record(z.any()).optional(),
 });
 
@@ -89,12 +89,40 @@ export interface PaymentConfirmationEmailVariables {
   currency: string;
   planName: string;
   invoiceUrl: string;
+  subscriptionStatus?: 'active' | 'trialing' | 'canceled' | 'past_due';
+  billingPeriod?: string;
+  nextBillingDate?: string;
+  transactionId?: string;
 }
 
 export interface SystemUpdateEmailVariables {
   title: string;
   updateSummary: string;
   releaseNotesUrl?: string;
+}
+
+export interface InvoiceEmailVariables {
+  firstName: string;
+  invoiceNumber: string;
+  amount: string;
+  currency: string;
+  dueDate: string;
+  invoiceUrl: string;
+  planName: string;
+  billingPeriod: string;
+  paymentMethod?: string;
+}
+
+export interface SubscriptionChangeEmailVariables {
+  firstName: string;
+  changeType: 'upgrade' | 'downgrade' | 'cancel' | 'reactivate';
+  oldPlan?: string;
+  newPlan?: string;
+  effectiveDate: string;
+  nextBillingDate?: string;
+  amount?: string;
+  currency?: string;
+  reason?: string;
 }
 
 export interface MarketingEmailVariables {
@@ -112,6 +140,8 @@ export type EmailVariables<T extends EmailTemplate> =
   T extends 'password-reset' ? PasswordResetEmailVariables :
   T extends 'notification' ? NotificationEmailVariables :
   T extends 'payment-confirmation' ? PaymentConfirmationEmailVariables :
+  T extends 'invoice' ? InvoiceEmailVariables :
+  T extends 'subscription-change' ? SubscriptionChangeEmailVariables :
   T extends 'system-update' ? SystemUpdateEmailVariables :
   T extends 'marketing' ? MarketingEmailVariables :
   Record<string, any>;
