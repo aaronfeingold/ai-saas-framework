@@ -42,3 +42,12 @@ next-env.d.ts
 
 # local Claude Code settings
 .claude/settings.local.json
+
+# monorepo
+**/node_modules
+**/.next/
+**/dist/
+**/.env
+**/.env.local
+!**/.env.example
+**/app.config.json

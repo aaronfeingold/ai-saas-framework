@@ -1,0 +1,10 @@
+{
+  "name": "@ai-saas/wizard",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Collects what an app needs, then copies the template and configures it. Today: the app.config.json questionnaire.",
+  "scripts": {
+    "start": "node src/create-new.js"
+  }
+}

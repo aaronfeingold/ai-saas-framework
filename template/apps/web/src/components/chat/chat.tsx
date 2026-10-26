@@ -1,0 +1,206 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+
+import type { UnifiedSession as Session } from '@/lib/auth/service';
+import { useSearchParams } from 'next/navigation';
+
+import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
+import { toast } from 'sonner';
+import useSWR, { useSWRConfig } from 'swr';
+import { unstable_serialize } from 'swr/infinite';
+
+import {
+  Conversation,
+  ConversationContent,
+  ConversationScrollButton,
+} from '@/components/ai-elements/conversation';
+import { ChatHeader } from '@/components/chat/chat-header';
+import { useArtifactSelector } from '@/hooks/use-artifact';
+import { useAutoResume } from '@/hooks/use-auto-resume';
+import { useChatVisibility } from '@/hooks/use-chat-visibility';
+import { type ModelId, getDefaultModel } from '@/lib/ai/providers';
+import type { Vote } from '@/lib/db/schema';
+import { ChatSDKError } from '@/lib/errors';
+import type { Attachment, ChatMessage } from '@/lib/types';
+import { fetchWithErrorHandlers, fetcher, generateUUID } from '@/lib/utils';
+
+import { Artifact } from './artifact';
+import { useDataStream } from './data-stream-provider';
+import { Messages } from './messages';
+import { MultimodalInput } from './multimodal-input';
+import { getChatHistoryPaginationKey } from './sidebar-history';
+import type { VisibilityType } from './visibility-selector';
+
+export function Chat({
+  id,
+  initialMessages,
+  initialChatModel,
+  initialVisibilityType,
+  isReadonly,
+  session,
+  autoResume,
+}: {
+  id: string;
+  initialMessages: ChatMessage[];
+  initialChatModel: string;
+  initialVisibilityType: VisibilityType;
+  isReadonly: boolean;
+  session: Session;
+  autoResume: boolean;
+}) {
+  const { visibility: visibilityType } = useChatVisibility(
+    initialVisibilityType
+  );
+
+  const { mutate } = useSWRConfig();
+  const { setDataStream } = useDataStream();
+
+  const [input, setInput] = useState<string>('');
+  const [selectedModel, setSelectedModel] = useState<ModelId>(
+    (initialChatModel as ModelId) || getDefaultModel()
+  );
+
+  const {
+    messages,
+    setMessages,
+    sendMessage,
+    status,
+    stop,
+    regenerate,
+    resumeStream,
+  } = useChat<ChatMessage>({
+    id,
+    messages: initialMessages,
+    experimental_throttle: 100,
+    generateId: generateUUID,
+    transport: new DefaultChatTransport({
+      api: '/api/chat/enhanced',
+      fetch: fetchWithErrorHandlers,
+      prepareSendMessagesRequest({ messages, id, body }) {
+        return {
+          body: {
+            chatId: id,
+            messages,
+            selectedModel,
+            selectedFiles: [], // TODO: Add file selection
+            ...body,
+          },
+        };
+      },
+    }),
+    onData: (dataPart) => {
+      setDataStream((ds) => (ds ? [...ds, dataPart] : []));
+    },
+    onFinish: () => {
+      mutate(unstable_serialize(getChatHistoryPaginationKey));
+    },
+    onError: (error) => {
+      if (error instanceof ChatSDKError) {
+        toast({
+          type: 'error',
+          description: error.message,
+        });
+      }
+    },
+  });
+
+  const searchParams = useSearchParams();
+  const query = searchParams.get('query');
+
+  const [hasAppendedQuery, setHasAppendedQuery] = useState(false);
+
+  useEffect(() => {
+    if (query && !hasAppendedQuery) {
+      sendMessage({
+        role: 'user' as const,
+        parts: [{ type: 'text', text: query }],
+      });
+
+      setHasAppendedQuery(true);
+      window.history.replaceState({}, '', `/chat/${id}`);
+    }
+  }, [query, sendMessage, hasAppendedQuery, id]);
+
+  const { data: votes } = useSWR<Array<Vote>>(
+    messages.length >= 2 ? `/api/vote?chatId=${id}` : null,
+    fetcher
+  );
+
+  const [attachments, setAttachments] = useState<Array<Attachment>>([]);
+  const isArtifactVisible = useArtifactSelector((state) => state.isVisible);
+
+  useAutoResume({
+    autoResume,
+    initialMessages,
+    resumeStream,
+    setMessages,
+  });
+
+  return (
+    <>
+      <div className="bg-background flex h-dvh min-w-0 flex-col">
+        <ChatHeader
+          chatId={id}
+          selectedModelId={selectedModel}
+          selectedVisibilityType={initialVisibilityType}
+          isReadonly={isReadonly}
+          session={session}
+          onModelSelect={setSelectedModel}
+        />
+
+        <Conversation>
+          <ConversationContent>
+            <Messages
+              chatId={id}
+              status={status}
+              votes={votes}
+              messages={messages}
+              setMessages={setMessages}
+              regenerate={regenerate}
+              isReadonly={isReadonly}
+              isArtifactVisible={isArtifactVisible}
+            />
+          </ConversationContent>
+          <ConversationScrollButton />
+        </Conversation>
+
+        <form className="bg-background mx-auto flex w-full gap-2 px-4 pb-4 md:max-w-3xl md:pb-6">
+          {!isReadonly && (
+            <MultimodalInput
+              chatId={id}
+              input={input}
+              setInput={setInput}
+              status={status}
+              stop={stop}
+              attachments={attachments}
+              setAttachments={setAttachments}
+              messages={messages}
+              setMessages={setMessages}
+              sendMessage={sendMessage}
+              selectedVisibilityType={visibilityType}
+            />
+          )}
+        </form>
+      </div>
+
+      <Artifact
+        chatId={id}
+        input={input}
+        setInput={setInput}
+        status={status}
+        stop={stop}
+        attachments={attachments}
+        setAttachments={setAttachments}
+        sendMessage={sendMessage}
+        messages={messages}
+        setMessages={setMessages}
+        regenerate={regenerate}
+        votes={votes}
+        isReadonly={isReadonly}
+        selectedVisibilityType={visibilityType}
+      />
+    </>
+  );
+}
