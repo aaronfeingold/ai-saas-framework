@@ -1,18 +1,19 @@
+import * as React from 'react';
+
 import {
   Body,
   Button,
   Container,
   Head,
   Heading,
+  Hr,
   Html,
   Img,
   Link,
   Preview,
   Section,
   Text,
-  Hr,
 } from '@react-email/components';
-import * as React from 'react';
 
 export interface EmailVerificationVariables {
   firstName: string;
@@ -20,7 +21,7 @@ export interface EmailVerificationVariables {
   expiryHours?: number;
 }
 
-interface EmailVerificationProps extends EmailVerificationVariables {}
+type EmailVerificationProps = EmailVerificationVariables;
 
 export const EmailVerificationEmail = ({
   firstName = 'User',
@@ -44,38 +45,35 @@ export const EmailVerificationEmail = ({
               style={logo}
             />
           </Section>
-          
+
           <Heading style={h1}>Verify Your Email Address</Heading>
-          
+
+          <Text style={text}>Hi {firstName},</Text>
+
           <Text style={text}>
-            Hi {firstName},
+            Welcome to AI SaaS Platform! We&apos;re excited to have you on
+            board. To complete your account setup and ensure the security of
+            your account, please verify your email address by clicking the
+            button below.
           </Text>
-          
-          <Text style={text}>
-            Welcome to AI SaaS Platform! We're excited to have you on board. 
-            To complete your account setup and ensure the security of your account, 
-            please verify your email address by clicking the button below.
-          </Text>
-          
+
           <Section style={buttonContainer}>
             <Button style={button} href={verificationUrl}>
               Verify Email Address
             </Button>
           </Section>
-          
+
           <Text style={text}>
             Or copy and paste this URL into your browser:
           </Text>
-          
-          <Text style={urlText}>
-            {verificationUrl}
-          </Text>
-          
+
+          <Text style={urlText}>{verificationUrl}</Text>
+
           <Section style={warningBox}>
             <Text style={warningText}>
-              <strong>Important:</strong> This verification link will expire in {expiryHours} hours 
-              for security reasons. If you didn't create an account with us, you can safely 
-              ignore this email.
+              <strong>Important:</strong> This verification link will expire in{' '}
+              {expiryHours} hours for security reasons. If you didn&apos;t
+              create an account with us, you can safely ignore this email.
             </Text>
           </Section>
 
@@ -84,7 +82,7 @@ export const EmailVerificationEmail = ({
           {/* What's Next Section */}
           <Section style={infoSection}>
             <Text style={text}>
-              <strong>After verification, you'll be able to:</strong>
+              <strong>After verification, you&apos;ll be able to:</strong>
             </Text>
             <ul style={list}>
               <li style={listItem}>Access your personalized dashboard</li>
@@ -98,31 +96,41 @@ export const EmailVerificationEmail = ({
           <Section style={securitySection}>
             <Text style={securityTitle}>🔒 Security Notice</Text>
             <Text style={securityText}>
-              We sent this email to verify your identity and secure your account. 
-              If you didn't sign up for AI SaaS Platform, please ignore this email. 
-              No account will be created without email verification.
+              We sent this email to verify your identity and secure your
+              account. If you didn&apos;t sign up for AI SaaS Platform, please
+              ignore this email. No account will be created without email
+              verification.
             </Text>
           </Section>
-          
+
           <Text style={text}>
-            If you have any questions or need assistance, don't hesitate to reach out 
-            to our support team. We're here to help you get started!
+            If you have any questions or need assistance, don&apos;t hesitate to
+            reach out to our support team. We&apos;re here to help you get
+            started!
           </Text>
-          
+
           <Text style={text}>
-            Best regards,<br />
+            Best regards,
+            <br />
             The AI SaaS Team
           </Text>
-          
+
           <Section style={footer}>
             <Text style={footerText}>
-              This verification email was sent to you because someone created an account 
-              using this email address.
+              This verification email was sent to you because someone created an
+              account using this email address.
             </Text>
             <Text style={footerText}>
-              AI SaaS Platform | 
-              <Link href="#" style={footerLink}> Help Center</Link> |
-              <Link href="#" style={footerLink}> Contact Support</Link>
+              AI SaaS Platform |
+              <Link href="#" style={footerLink}>
+                {' '}
+                Help Center
+              </Link>{' '}
+              |
+              <Link href="#" style={footerLink}>
+                {' '}
+                Contact Support
+              </Link>
             </Text>
           </Section>
         </Container>
@@ -136,7 +144,8 @@ export default EmailVerificationEmail;
 // Styles
 const main = {
   backgroundColor: '#f6f9fc',
-  fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Ubuntu,sans-serif',
+  fontFamily:
+    '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Ubuntu,sans-serif',
 };
 
 const container = {
@@ -157,7 +166,8 @@ const logo = {
 
 const h1 = {
   color: '#333',
-  fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Ubuntu,sans-serif',
+  fontFamily:
+    '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Ubuntu,sans-serif',
   fontSize: '24px',
   fontWeight: 'bold',
   margin: '40px 0',
@@ -167,7 +177,8 @@ const h1 = {
 
 const text = {
   color: '#333',
-  fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Ubuntu,sans-serif',
+  fontFamily:
+    '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Ubuntu,sans-serif',
   fontSize: '14px',
   lineHeight: '24px',
   margin: '16px 0',
@@ -176,7 +187,8 @@ const text = {
 
 const urlText = {
   color: '#4F46E5',
-  fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Ubuntu,sans-serif',
+  fontFamily:
+    '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Ubuntu,sans-serif',
   fontSize: '14px',
   lineHeight: '24px',
   margin: '16px 0',
@@ -193,7 +205,8 @@ const button = {
   backgroundColor: '#4F46E5',
   borderRadius: '6px',
   color: '#fff',
-  fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Ubuntu,sans-serif',
+  fontFamily:
+    '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Ubuntu,sans-serif',
   fontSize: '16px',
   fontWeight: 'bold',
   textDecoration: 'none',
@@ -206,7 +219,7 @@ const button = {
 
 const warningBox = {
   backgroundColor: '#EBF8FF',
-  border: '1px solid '#3B82F6',
+  border: '1px solid #3B82F6',
   borderRadius: '6px',
   margin: '24px',
   padding: '16px',
@@ -214,7 +227,8 @@ const warningBox = {
 
 const warningText = {
   color: '#1E40AF',
-  fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Ubuntu,sans-serif',
+  fontFamily:
+    '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Ubuntu,sans-serif',
   fontSize: '14px',
   lineHeight: '20px',
   margin: '0',
@@ -232,7 +246,8 @@ const infoSection = {
 
 const list = {
   color: '#333',
-  fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Ubuntu,sans-serif',
+  fontFamily:
+    '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Ubuntu,sans-serif',
   fontSize: '14px',
   lineHeight: '24px',
   margin: '16px 0',
@@ -253,7 +268,8 @@ const securitySection = {
 
 const securityTitle = {
   color: '#15803D',
-  fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Ubuntu,sans-serif',
+  fontFamily:
+    '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Ubuntu,sans-serif',
   fontSize: '14px',
   fontWeight: 'bold',
   margin: '0 0 8px 0',
@@ -261,7 +277,8 @@ const securityTitle = {
 
 const securityText = {
   color: '#15803D',
-  fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Ubuntu,sans-serif',
+  fontFamily:
+    '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Ubuntu,sans-serif',
   fontSize: '14px',
   lineHeight: '20px',
   margin: '0',
@@ -276,7 +293,8 @@ const footer = {
 
 const footerText = {
   color: '#666',
-  fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Ubuntu,sans-serif',
+  fontFamily:
+    '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Ubuntu,sans-serif',
   fontSize: '12px',
   lineHeight: '16px',
   margin: '8px 0',
@@ -285,7 +303,8 @@ const footerText = {
 
 const footerLink = {
   color: '#4F46E5',
-  fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Ubuntu,sans-serif',
+  fontFamily:
+    '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Ubuntu,sans-serif',
   fontSize: '12px',
   textDecoration: 'underline',
 };

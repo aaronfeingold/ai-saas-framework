@@ -125,6 +125,7 @@ const { logs, total } = await EmailDatabase.getEmailLogs({
 Send a single email using a template.
 
 **Request Body:**
+
 ```json
 {
   "to": "user@example.com",
@@ -138,6 +139,7 @@ Send a single email using a template.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -151,6 +153,7 @@ Send a single email using a template.
 Send emails to multiple recipients.
 
 **Request Body:**
+
 ```json
 {
   "recipients": ["user1@example.com", "user2@example.com"],
@@ -168,6 +171,7 @@ Send emails to multiple recipients.
 Retrieve email logs with optional filtering.
 
 **Query Parameters:**
+
 - `limit` (optional): Number of logs to return (max 100)
 - `offset` (optional): Pagination offset
 - `status` (optional): Filter by status (pending, sent, delivered, bounced, failed)
@@ -177,14 +181,17 @@ Retrieve email logs with optional filtering.
 ## Available Templates
 
 ### 1. Welcome Template
+
 - **Variables:** `firstName`, `loginUrl`
 - **Use case:** New user registration
 
 ### 2. Password Reset Template
+
 - **Variables:** `firstName`, `resetUrl`, `expiryHours`
 - **Use case:** Password reset requests
 
 ### 3. Notification Template
+
 - **Variables:** `title`, `message`, `actionUrl`, `actionText`
 - **Use case:** General notifications and alerts
 
@@ -196,6 +203,7 @@ Retrieve email logs with optional filtering.
 ## Error Handling
 
 All email operations include comprehensive error handling:
+
 - Input validation with Zod schemas
 - Resend API error handling
 - Database logging of all attempts
@@ -204,7 +212,9 @@ All email operations include comprehensive error handling:
 ## Testing
 
 ### System Test
+
 Visit `/admin/email-test` to:
+
 - Test Resend connectivity
 - Test database connectivity
 - Send test emails
@@ -212,6 +222,7 @@ Visit `/admin/email-test` to:
 - Monitor email statistics
 
 ### API Testing
+
 ```bash
 # Test system connectivity
 curl http://localhost:3000/api/email/test
@@ -240,6 +251,7 @@ curl -X POST http://localhost:3000/api/email/test \
 ## Next Steps (Phase 2)
 
 The system is ready for Phase 2 implementation:
+
 - **Transactional Email System** - Payment confirmations, enhanced auth emails
 - **Template Management** - Admin interface for template creation
 - **Webhook Integration** - Resend delivery status webhooks

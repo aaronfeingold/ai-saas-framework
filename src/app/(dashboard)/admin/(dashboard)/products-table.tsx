@@ -20,7 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { SelectProduct } from '@/lib/db';
+import { SelectProduct } from '@/lib/admin/db';
 
 import { Product } from './product';
 
