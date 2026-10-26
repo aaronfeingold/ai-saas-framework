@@ -50,10 +50,9 @@ export function Chat({
   session: Session;
   autoResume: boolean;
 }) {
-  const { visibilityType } = useChatVisibility({
-    chatId: id,
-    initialVisibilityType,
-  });
+  const { visibility: visibilityType } = useChatVisibility(
+    initialVisibilityType
+  );
 
   const { mutate } = useSWRConfig();
   const { setDataStream } = useDataStream();

@@ -2,7 +2,7 @@ import { File, PlusCircle } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { getProducts } from '@/lib/db';
+import { getProducts } from '@/lib/admin/db';
 
 import { ProductsTable } from './products-table';
 

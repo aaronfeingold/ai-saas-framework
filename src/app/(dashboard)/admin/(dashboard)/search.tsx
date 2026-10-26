@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 
 import { Search } from 'lucide-react';
 
-import { Spinner } from '@/components/icons';
+import { Spinner } from '@/components/admin/data-tables/components/icons';
 import { Input } from '@/components/ui/input';
 
 export function SearchInput() {
