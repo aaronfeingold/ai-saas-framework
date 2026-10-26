@@ -1,0 +1,24 @@
+name: ai-saas-app
+
+# Local stand-ins for what production uses: Postgres with pgvector (Neon, RDS, Cloud SQL or
+# Azure Database all run it). Supabase stays hosted; point the apps at a project.
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: app
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+    ports:
+      - "127.0.0.1:55435:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d app"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  postgres_data:

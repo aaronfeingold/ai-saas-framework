@@ -1,0 +1,88 @@
+{
+  "project": {
+    "name": "my-app",
+    "version": "1.0.0",
+    "description": "An AI-powered app built on the AI SaaS Framework",
+    "domain": "example.com",
+    "supabaseName": "my-app"
+  },
+  "metadata": {
+    "title": "my-app",
+    "description": "An AI-powered app built on the AI SaaS Framework",
+    "keywords": ["AI", "SaaS"],
+    "author": "my-app",
+    "openGraph": {
+      "type": "website",
+      "locale": "en_US",
+      "siteName": "my-app",
+      "images": [
+        {
+          "url": "/og-image.png",
+          "width": 1200,
+          "height": 630,
+          "alt": "my-app - AI-powered app"
+        }
+      ]
+    },
+    "twitter": {
+      "card": "summary_large_image",
+      "site": "@example",
+      "creator": "@example",
+      "images": ["/og-image.png"]
+    },
+    "manifest": "/manifest.json",
+    "themeColor": "#2acf80",
+    "backgroundColor": "#ffffff",
+    "icons": {
+      "icon": "/favicon.ico",
+      "apple": "/apple-touch-icon.png",
+      "other": [
+        {
+          "rel": "icon",
+          "url": "/favicon-16x16.png",
+          "sizes": "16x16",
+          "type": "image/png"
+        },
+        {
+          "rel": "icon",
+          "url": "/favicon-32x32.png",
+          "sizes": "32x32",
+          "type": "image/png"
+        }
+      ]
+    }
+  },
+  "brand": {
+    "name": "my-app",
+    "tagline": "Your idea, running",
+    "logo": {
+      "light": "/logo-light.svg",
+      "dark": "/logo-dark.svg",
+      "favicon": "/favicon.ico"
+    },
+    "contact": {
+      "email": "hello@example.com",
+      "website": "https://example.com"
+    },
+    "social": {
+      "twitter": "https://twitter.com/example",
+      "linkedin": "https://linkedin.com/company/my-app",
+      "github": "https://github.com/example"
+    }
+  },
+  "environment": {
+    "production": {
+      "url": "https://example.com",
+      "apiUrl": "https://api.example.com"
+    },
+    "development": {
+      "url": "http://localhost:3000"
+    }
+  },
+  "features": {
+    "analytics": true,
+    "darkMode": true,
+    "multiLanguage": false,
+    "maintenance": false
+  }
+}
